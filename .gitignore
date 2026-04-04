@@ -1,0 +1,16 @@
+__pycache__/
+.pytest_cache/
+.venv/
+venv/
+node_modules/
+.expo/
+dist/
+build/
+coverage/
+*.pyc
+*.pyo
+*.pyd
+*.log
+.env
+.env.local
+personaai.db

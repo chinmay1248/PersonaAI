@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "PersonaAI",
+    "slug": "personaai",
+    "scheme": "personaai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "plugins": [
+      "expo-router"
+    ],
+    "android": {
+      "package": "com.personaai.app",
+      "versionCode": 1,
+      "permissions": [
+        "SYSTEM_ALERT_WINDOW"
+      ]
+    }
+  }
+}
