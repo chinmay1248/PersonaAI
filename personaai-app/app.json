@@ -13,11 +13,20 @@
       "expo-router"
     ],
     "android": {
-      "package": "com.personaai.app",
+      "package": "com.anonymous.personaai",
       "versionCode": 1,
       "permissions": [
         "SYSTEM_ALERT_WINDOW"
       ]
+    },
+    "ios": {
+      "bundleIdentifier": "com.anonymous.personaai"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "75b60b76-0761-4807-acc8-ee530388dc7a"
+      }
     }
   }
 }

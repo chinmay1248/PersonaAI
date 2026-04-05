@@ -23,8 +23,8 @@ class Settings(BaseSettings):
     database_url: str = Field(default="sqlite:///./personaai.db", alias="DATABASE_URL")
 
     redis_url: str = Field(default="redis://localhost:6379/0", alias="REDIS_URL")
-    jwt_secret_key: str = Field(default="change-me", alias="JWT_SECRET_KEY")
-    encryption_key: str = Field(default="gP2wS91E5TfJ_5yUfH4mNqR-_4qX5Qp3Zq41C2P-7m0=", alias="ENCRYPTION_KEY")
+    jwt_secret_key: str = Field(alias="JWT_SECRET_KEY")  # Required - no default
+    encryption_key: str = Field(alias="ENCRYPTION_KEY")  # Required - no default
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
     access_token_expire_minutes: int = Field(default=60, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
     refresh_token_expire_days: int = Field(default=30, alias="REFRESH_TOKEN_EXPIRE_DAYS")

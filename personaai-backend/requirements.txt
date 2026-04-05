@@ -14,4 +14,4 @@ httpx==0.28.1
 psycopg2-binary==2.9.10
 cryptography==42.0.8
 openai==1.35.13
-pinecone-client==3.2.2
+pinecone==3.2.2

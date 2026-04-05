@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   groupRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    backgroundColor: colors.background,
+    backgroundColor: colors.canvas,
     padding: 12,
     borderRadius: 8
   },
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.canvas,
     padding: 12,
     borderRadius: 8,
     color: colors.text

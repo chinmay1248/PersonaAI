@@ -11,6 +11,27 @@ from app.utils.validators import VALID_AUTO_REPLY_MODES, VALID_PERSONALITY_MODES
 router = APIRouter(prefix="/chats", tags=["chat-configs"])
 
 
+@router.get("/config", response_model=list[ChatConfigResponse])
+def get_configs(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[ChatConfigResponse]:
+    """Get all chat configurations for the current user."""
+    configs = db.query(ChatConfig).filter(ChatConfig.user_id == current_user.id).all()
+    return [
+        ChatConfigResponse(
+            id=config.id,
+            chat_label=config.chat_label,
+            chat_type=config.chat_type,
+            personality_mode=config.personality_mode,
+            auto_reply_mode=config.auto_reply_mode,
+            ai_enabled=config.ai_enabled,
+            is_private=config.is_private,
+        )
+        for config in configs
+    ]
+
+
 @router.post("/config", response_model=ChatConfigResponse, status_code=status.HTTP_201_CREATED)
 def create_config(
     payload: ChatConfigCreateRequest,

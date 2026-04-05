@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
 from app.config import get_settings
 from app.database import Base, engine
@@ -8,9 +9,26 @@ from app.routers import ai_reply, auth, chat_config, feedback, summarizer, tone
 settings = get_settings()
 app = FastAPI(title=settings.app_name, debug=settings.debug)
 
+# Configure CORS based on environment
+if settings.app_env == "production":
+    # In production, restrict to specific frontend URLs
+    allowed_origins = [
+        os.getenv("FRONTEND_URL", "https://personaai.app"),
+        "https://personaai.app",
+    ]
+else:
+    # In development, allow more origins
+    allowed_origins = [
+        "http://localhost:3000",
+        "http://localhost:8081",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8081",
+        "*",  # Allow all in development for testing
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

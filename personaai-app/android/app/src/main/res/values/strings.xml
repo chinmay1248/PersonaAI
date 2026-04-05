@@ -1,3 +1,4 @@
 <resources>
   <string name="app_name">PersonaAI</string>
+  <string name="accessibility_service_description">Reads supported chat screens to power the PersonaAI WhatsApp overlay assistant.</string>
 </resources>
