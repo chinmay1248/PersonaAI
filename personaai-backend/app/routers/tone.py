@@ -5,7 +5,7 @@ from app.database import get_db
 from app.middleware.auth_middleware import get_current_user
 from app.models.tone_profile import ToneProfile
 from app.models.user import User
-from app.schemas.tone import ToneProfileResponse, TrainToneRequest
+from app.schemas.tone import ToneProfileResponse, TrainToneRequest, TrainFromMessagesRequest, TrainingStatsResponse
 from app.services.tone_learner import ToneLearnerService
 
 router = APIRouter(prefix="/tone", tags=["tone"])
@@ -33,6 +33,67 @@ def train_tone(
 ) -> ToneProfileResponse:
     profile = ToneLearnerService.train(db, current_user.id, payload.samples)
     return _to_response(profile)
+
+
+@router.post("/train-from-messages", response_model=ToneProfileResponse)
+def train_from_messages(
+    payload: TrainFromMessagesRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ToneProfileResponse:
+    """
+    Continuously train tone profile from real chat messages (WhatsApp, Telegram, etc).
+    This merges new message patterns with existing tone profile.
+    """
+    profile = ToneLearnerService.train_from_messages(db, current_user.id, payload.messages, payload.source)
+    return _to_response(profile)
+
+
+@router.get("/training-stats", response_model=TrainingStatsResponse)
+def get_training_stats(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> TrainingStatsResponse:
+    """Get statistics about how much the AI has learned about your communication style."""
+    profile = db.query(ToneProfile).filter(ToneProfile.user_id == current_user.id).one_or_none()
+
+    if not profile:
+        return TrainingStatsResponse(
+            total_samples_trained=0,
+            whatsapp_samples=0,
+            manual_samples=0,
+            last_training_time=None,
+            accuracy_score=0.0,
+            most_common_slang=[],
+        )
+
+    # Count training samples by source
+    from app.models.training_sample import TrainingSample
+
+    total_samples = db.query(TrainingSample).filter(
+        TrainingSample.user_id == current_user.id, TrainingSample.used_in_training == True
+    ).count()
+
+    whatsapp_samples = db.query(TrainingSample).filter(
+        TrainingSample.user_id == current_user.id,
+        TrainingSample.source == "whatsapp",
+        TrainingSample.used_in_training == True,
+    ).count()
+
+    manual_samples = db.query(TrainingSample).filter(
+        TrainingSample.user_id == current_user.id,
+        TrainingSample.source == "manual",
+        TrainingSample.used_in_training == True,
+    ).count()
+
+    return TrainingStatsResponse(
+        total_samples_trained=total_samples,
+        whatsapp_samples=whatsapp_samples,
+        manual_samples=manual_samples,
+        last_training_time=profile.last_trained_at.isoformat() if profile.last_trained_at else None,
+        accuracy_score=profile.accuracy_score,
+        most_common_slang=profile.slang_patterns[:10],
+    )
 
 
 @router.get("/profile", response_model=ToneProfileResponse)

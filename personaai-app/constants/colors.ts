@@ -3,6 +3,7 @@ export const colors = {
   surface: "#FFFDFC",
   card: "#F0E7D8",
   text: "#1F2933",
+  textSecondary: "#6B7280",
   muted: "#6B7280",
   primary: "#0F766E",
   primarySoft: "#C7F0E6",
