@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import android.provider.Settings
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
@@ -14,7 +15,6 @@ class PersonaAIModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
 
     private val ACTION_WHATSAPP_SCRAPED = "com.anonymous.personaai.WHATSAPP_SCRAPED"
 
-    // Broadcast receiver securely listens to the Accessibility Service regardless of Thread
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == ACTION_WHATSAPP_SCRAPED) {
@@ -27,12 +27,24 @@ class PersonaAIModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
     }
 
     init {
-        // Register the receiver dynamically when React initialization kicks in
-        reactApplicationContext.registerReceiver(
-            receiver, 
-            IntentFilter(ACTION_WHATSAPP_SCRAPED),
-            Context.RECEIVER_EXPORTED
-        )
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                reactApplicationContext.registerReceiver(
+                    receiver,
+                    IntentFilter(ACTION_WHATSAPP_SCRAPED),
+                    Context.RECEIVER_EXPORTED
+                )
+            } else {
+                @Suppress("UnspecifiedRegisterReceiverFlag")
+                reactApplicationContext.registerReceiver(
+                    receiver,
+                    IntentFilter(ACTION_WHATSAPP_SCRAPED)
+                )
+            }
+        } catch (e: Exception) {
+            // Gracefully handle if receiver registration fails
+            android.util.Log.w("PersonaAIModule", "Failed to register broadcast receiver: ${e.message}")
+        }
     }
 
     override fun getName(): String {
@@ -41,16 +53,24 @@ class PersonaAIModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
 
     @ReactMethod
     fun requestAccessibilityPermission() {
-        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        reactApplicationContext.startActivity(intent)
+        try {
+            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            reactApplicationContext.startActivity(intent)
+        } catch (e: Exception) {
+            android.util.Log.w("PersonaAIModule", "Failed to open accessibility settings: ${e.message}")
+        }
     }
 
     private fun sendEventToJS(eventName: String, payload: String) {
-        if (reactApplicationContext.hasActiveReactInstance()) {
-            reactApplicationContext
-                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                .emit(eventName, payload)
+        try {
+            if (reactApplicationContext.hasActiveReactInstance()) {
+                reactApplicationContext
+                    .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+                    .emit(eventName, payload)
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("PersonaAIModule", "Failed to send event to JS: ${e.message}")
         }
     }
 }
