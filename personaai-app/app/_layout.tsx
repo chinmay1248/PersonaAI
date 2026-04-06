@@ -6,7 +6,7 @@ import { colors } from "@/constants/colors";
 export default function RootLayout() {
   return (
     <>
-      <StatusBar style="dark" />
+      <StatusBar style="auto" />
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: colors.canvas },

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from sqlalchemy import DateTime, ForeignKey, JSON, String, Text
@@ -16,7 +16,7 @@ class Conversation(Base):
     incoming_msg: Mapped[str] = mapped_column(Text, nullable=False)
     detected_mood: Mapped[str | None] = mapped_column(String(50), nullable=True)
     context_window: Mapped[list[dict[str, str]]] = mapped_column(JSON, default=list)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="conversations")
     chat_config = relationship("ChatConfig", back_populates="conversations")

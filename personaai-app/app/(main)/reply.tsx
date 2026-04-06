@@ -10,6 +10,7 @@ import { colors } from "@/constants/colors";
 import { useReplies } from "@/hooks/useReplies";
 import { useChatStore } from "@/store/chatStore";
 import { chatService } from "@/services/chatService";
+import { api } from "@/services/api";
 
 export default function ReplyScreen() {
   const [message, setMessage] = useState("Hey bro u free tomorrow?");
@@ -26,7 +27,7 @@ export default function ReplyScreen() {
   async function handleGenerate() {
     const targetChatId = activeChatId || chats[0]?.id;
     if (!targetChatId) {
-       Alert.alert("Missing chat", "Please ensure at least one chat config exists.");
+       Alert.alert("Missing chat", "Please go to Chat Configs and create at least one chat configuration first.");
        return;
     }
     
@@ -43,6 +44,19 @@ export default function ReplyScreen() {
     }
   }
 
+  async function handleFeedback(rating: string) {
+    if (!result || result.suggestions.length === 0) return;
+    try {
+      await api.post("/feedback/reply", {
+        reply_suggestion_id: result.suggestions[0].id,
+        rating: rating,
+      });
+      Alert.alert("Thanks!", "Your feedback helps PersonaAI learn your style better.");
+    } catch (error) {
+      console.error("Feedback failed:", error);
+    }
+  }
+
   return (
     <AppScreen title="Reply generator" subtitle={activeChatId ? "Using selected chat mode." : "Using default personality."}>
       <TextInput
@@ -52,15 +66,18 @@ export default function ReplyScreen() {
         placeholder="Paste incoming messages here"
         multiline
       />
-      <Pressable onPress={handleGenerate} style={styles.button}>
-        <Text style={styles.buttonLabel}>Generate replies</Text>
+      <Pressable onPress={handleGenerate} style={[styles.button, loading && styles.buttonDisabled]} disabled={loading}>
+        <Text style={styles.buttonLabel}>{loading ? "Generating..." : "Generate replies"}</Text>
       </Pressable>
       {loading ? <LoadingReplies /> : null}
       {result ? (
         <>
           <MoodBadge mood={result.detected_mood} />
           <ReplyList replies={result.suggestions} />
-          <FeedbackButtons />
+          <FeedbackButtons
+            onLike={() => handleFeedback("liked")}
+            onDislike={() => handleFeedback("disliked")}
+          />
         </>
       ) : null}
     </AppScreen>
@@ -83,6 +100,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 14,
     alignItems: "center"
+  },
+  buttonDisabled: {
+    opacity: 0.6
   },
   buttonLabel: {
     color: "#FFFFFF",

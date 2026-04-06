@@ -21,7 +21,7 @@ env/
 *.sqlite3
 
 # Alembic
-alembic/versions/*.py
+# Note: Do NOT ignore migration files — they must be deployed
 
 # Logs
 *.log

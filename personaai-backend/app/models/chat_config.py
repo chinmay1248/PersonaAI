@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, String
@@ -18,7 +18,7 @@ class ChatConfig(Base):
     auto_reply_mode: Mapped[str] = mapped_column(String(20), default="OFF")
     ai_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     is_private: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="chat_configs")
     conversations = relationship("Conversation", back_populates="chat_config")

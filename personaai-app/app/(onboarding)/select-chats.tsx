@@ -11,7 +11,10 @@ export default function SelectChatsScreen() {
   return (
     <AppScreen title="Select your first chat" subtitle="Start with one conversation type so we can tune the first reply experience.">
       <TextInput style={styles.input} value={chatName} onChangeText={setChatName} placeholder="Chat label" />
-      <Pressable onPress={() => router.push("/(onboarding)/personality-setup")} style={styles.button}>
+      <Pressable
+        onPress={() => router.push({ pathname: "/(onboarding)/personality-setup", params: { chatName } })}
+        style={styles.button}
+      >
         <Text style={styles.buttonLabel}>Continue</Text>
       </Pressable>
     </AppScreen>

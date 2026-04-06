@@ -109,3 +109,25 @@ def get_profile(
             ["hey there", "sounds good", "let me get back to you soon"],
         )
     return _to_response(profile)
+
+
+@router.post("/enable-auto-training")
+def enable_auto_training(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Enable automatic training from WhatsApp messages."""
+    current_user.auto_training_enabled = True
+    db.commit()
+    return {"message": "Auto-training enabled", "auto_training_enabled": True}
+
+
+@router.post("/disable-auto-training")
+def disable_auto_training(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Disable automatic training from WhatsApp messages."""
+    current_user.auto_training_enabled = False
+    db.commit()
+    return {"message": "Auto-training disabled", "auto_training_enabled": False}

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
@@ -17,7 +17,7 @@ class ReplySuggestion(Base):
     was_used: Mapped[bool] = mapped_column(Boolean, default=False)
     feedback: Mapped[str | None] = mapped_column(String(10), nullable=True)
     feedback_reason: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     conversation = relationship("Conversation", back_populates="reply_suggestions")
     feedback_logs = relationship("FeedbackLog", back_populates="reply_suggestion", cascade="all, delete-orphan")

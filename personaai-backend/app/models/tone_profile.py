@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from sqlalchemy import DateTime, Float, ForeignKey, JSON, String
@@ -23,6 +23,6 @@ class ToneProfile(Base):
     vector_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     accuracy_score: Mapped[float] = mapped_column(Float, default=0.0)
     last_trained_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="tone_profiles")

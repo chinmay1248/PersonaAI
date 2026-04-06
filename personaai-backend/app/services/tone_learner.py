@@ -1,5 +1,5 @@
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 import json
 
@@ -69,7 +69,7 @@ class ToneLearnerService:
         profile.caps_usage = caps_usage
         profile.language_mix = language_mix
         profile.vector_id = vector_id
-        profile.last_trained_at = datetime.utcnow()
+        profile.last_trained_at = datetime.now(timezone.utc)
 
         for sample in samples:
             db.add(TrainingSample(user_id=user_id, sample_text=sample, source="manual", used_in_training=True))
@@ -110,7 +110,7 @@ class ToneLearnerService:
         profile.emoji_frequency = (profile.emoji_frequency or 0) * 0.7 + new_emoji_frequency * 0.3
         profile.slang_patterns = merged_slang
         profile.common_emojis = [item for item, _ in Counter(emoji_matches + profile.common_emojis).most_common(5)]
-        profile.last_trained_at = datetime.utcnow()
+        profile.last_trained_at = datetime.now(timezone.utc)
         
         # Update formality based on slang
         profile.formality_score = max(1.0, min(5.0, 5.0 - (len(merged_slang) * 0.5)))
