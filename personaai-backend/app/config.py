@@ -29,8 +29,13 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = Field(default=60, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
     refresh_token_expire_days: int = Field(default=30, alias="REFRESH_TOKEN_EXPIRE_DAYS")
     openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")
+    enable_openai: bool = Field(default=False, alias="ENABLE_OPENAI")
     pinecone_api_key: str | None = Field(default=None, alias="PINECONE_API_KEY")
     pinecone_environment: str | None = Field(default=None, alias="PINECONE_ENVIRONMENT")
+
+    @property
+    def openai_enabled(self) -> bool:
+        return bool(self.openai_api_key) and (self.enable_openai or self.app_env == "production")
 
 
 @lru_cache
