@@ -1,0 +1,8 @@
+.env
+.pytest_cache
+.test_personaai.db
+__pycache__
+*.db
+*.pyc
+venv
+.venv
