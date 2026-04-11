@@ -7,12 +7,16 @@ import { storageService } from "@/services/storageService";
 // For production: use the deployed backend URL
 // For development: use local backend or staging URL
 
-const CLOUD_URL = process.env.EXPO_PUBLIC_API_URL || "https://personaai-backend-production-4490.up.railway.app/v1";
+const ENV_API_URL = process.env.EXPO_PUBLIC_API_URL?.trim();
+const CLOUD_URL = "https://personaai-backend-production-4490.up.railway.app/v1";
 const LOCAL_URL = Platform.OS === "android" ? "http://10.0.2.2:8000/v1" : "http://localhost:8000/v1";
 
-// Select the appropriate URL based on environment
+// Select the appropriate URL based on environment.
+// EXPO_PUBLIC_API_URL always wins, which lets physical devices use a LAN URL.
 const isDevelopment = process.env.NODE_ENV === "development" || process.env.EXPO_PUBLIC_ENV === "development";
-const BASE_URL = isDevelopment ? LOCAL_URL : CLOUD_URL;
+const BASE_URL = ENV_API_URL || (isDevelopment ? LOCAL_URL : CLOUD_URL);
+
+export const API_BASE_URL = BASE_URL;
 
 export const api = axios.create({
   baseURL: BASE_URL,
