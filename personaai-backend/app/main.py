@@ -41,12 +41,12 @@ def _seed_demo_user() -> None:
             )
             db.add(user)
             db.commit()
-            print("✅ Demo user created: demo@persona.ai / StrongPass123")
+            print("Demo user created: demo@persona.ai / StrongPass123")
         else:
-            print("✅ Demo user already exists")
+            print("Demo user already exists")
     except Exception as exc:
         db.rollback()
-        print(f"⚠️ Failed to seed demo user: {exc}")
+        print(f"Failed to seed demo user: {exc}")
     finally:
         db.close()
 
