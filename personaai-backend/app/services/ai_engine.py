@@ -56,7 +56,7 @@ class AIEngineService:
         db.flush()
 
         reply_texts = []
-        if settings.openai_api_key:
+        if settings.openai_enabled:
             try:
                 client = openai.OpenAI(api_key=settings.openai_api_key)
                 system_prompt = f"{prompt['system']} You must provide exactly {payload.count} varied reply options formatted ONLY as a valid JSON array of strings. Do not include markdown formatting. Return JSON like: {{\"replies\": [\"reply 1\", \"reply 2\"]}}"
