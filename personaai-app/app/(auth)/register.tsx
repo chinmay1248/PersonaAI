@@ -9,8 +9,8 @@ import { useAuthStore } from "@/store/authStore";
 
 export default function RegisterScreen() {
   const [displayName, setDisplayName] = useState("Persona Builder");
-  const [email, setEmail] = useState("demo@persona.ai");
-  const [password, setPassword] = useState("StrongPass123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const setSession = useAuthStore((state) => state.setSession);
 
   async function handleRegister() {
