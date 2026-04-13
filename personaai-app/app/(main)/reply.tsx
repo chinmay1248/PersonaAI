@@ -9,6 +9,7 @@ import { ReplyList } from "@/components/ReplyList";
 import { colors } from "@/constants/colors";
 import { useReplies } from "@/hooks/useReplies";
 import { useChatStore } from "@/store/chatStore";
+import { useOverlayStore } from "@/store/overlayStore";
 import { chatService } from "@/services/chatService";
 import { api } from "@/services/api";
 
@@ -17,6 +18,7 @@ export default function ReplyScreen() {
   const [result, setResult] = useState<{ detected_mood: string; suggestions: Array<{ id: string; rank: number; text: string }> } | null>(null);
   const { loading, generateReply } = useReplies();
   const { chats, setChats, activeChatId } = useChatStore();
+  const lastCapture = useOverlayStore((state) => state.lastCapture);
 
   useEffect(() => {
     if (chats.length === 0) {
@@ -24,8 +26,17 @@ export default function ReplyScreen() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!lastCapture || lastCapture.incomingMessages.length === 0) return;
+    setMessage(lastCapture.incomingMessages.join("\n"));
+  }, [lastCapture?.capturedAt]);
+
   async function handleGenerate() {
-    const targetChatId = activeChatId || chats[0]?.id;
+    const matchedChatId =
+      lastCapture?.matchedGroup
+        ? chats.find((chat) => chat.chat_label.toLowerCase() === lastCapture.matchedGroup.toLowerCase())?.id
+        : null;
+    const targetChatId = activeChatId || matchedChatId || chats[0]?.id;
     if (!targetChatId) {
        Alert.alert("Missing chat", "Please go to Chat Configs and create at least one chat configuration first.");
        return;
@@ -34,8 +45,11 @@ export default function ReplyScreen() {
     try {
       const response = await generateReply({
         chat_config_id: targetChatId,
-        incoming_messages: [message],
-        conversation_history: [{ role: "them", text: "what's the scene?" }],
+        incoming_messages: message.split("\n").map((item) => item.trim()).filter(Boolean),
+        conversation_history: (lastCapture?.incomingMessages ?? ["what's the scene?"]).slice(0, 5).map((text) => ({
+          role: "them",
+          text,
+        })),
         count: 3
       });
       setResult(response);
@@ -58,7 +72,16 @@ export default function ReplyScreen() {
   }
 
   return (
-    <AppScreen title="Reply generator" subtitle={activeChatId ? "Using selected chat mode." : "Using default personality."}>
+    <AppScreen
+      title="Reply generator"
+      subtitle={
+        lastCapture?.matchedGroup
+          ? `Latest capture from ${lastCapture.matchedGroup}.`
+          : activeChatId
+            ? "Using selected chat mode."
+            : "Using default personality."
+      }
+    >
       <TextInput
         style={styles.input}
         value={message}

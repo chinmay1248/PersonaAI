@@ -1,15 +1,29 @@
 import { useState } from "react";
 import { router } from "expo-router";
-import { Pressable, StyleSheet, Text, View, Switch, TextInput } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View, Switch, TextInput } from "react-native";
 
 import { AppScreen } from "@/components/AppScreen";
 import { colors } from "@/constants/colors";
+import { messageTrainingService } from "@/services/messageTrainingService";
+import { whatsappIntegrationService } from "@/services/whatsappIntegrationService";
 import { useAuthStore } from "@/store/authStore";
 import { useOverlayStore } from "@/store/overlayStore";
 
 export default function SettingsScreen() {
   const logout = useAuthStore((state) => state.logout);
-  const { isOverlayActive, toggleOverlay, allowedGroups, addAllowedGroup, removeAllowedGroup } = useOverlayStore();
+  const {
+    isOverlayActive,
+    autoTrainingEnabled,
+    toggleOverlay,
+    setAutoTrainingEnabled,
+    allowedGroups,
+    addAllowedGroup,
+    removeAllowedGroup,
+    lastCapture,
+    lastTrainingStatus,
+    lastError,
+    setLastError,
+  } = useOverlayStore();
   const [newGroup, setNewGroup] = useState("");
 
   function handleLogout() {
@@ -24,6 +38,20 @@ export default function SettingsScreen() {
     }
   }
 
+  async function handleAutoTrainingToggle(enabled: boolean) {
+    try {
+      if (enabled) {
+        await messageTrainingService.enableAutoTraining();
+      } else {
+        await messageTrainingService.disableAutoTraining();
+      }
+      setAutoTrainingEnabled(enabled);
+      setLastError(null);
+    } catch (error) {
+      Alert.alert("Could not update auto-training", error instanceof Error ? error.message : "Please try again.");
+    }
+  }
+
   return (
     <AppScreen title="Settings" subtitle="Manage your WhatsApp Extension and settings.">
       <View style={styles.section}>
@@ -32,6 +60,20 @@ export default function SettingsScreen() {
           <Text style={styles.text}>Enable WhatsApp Extension</Text>
           <Switch value={isOverlayActive} onValueChange={toggleOverlay} trackColor={{ true: colors.primary }} />
         </View>
+        <View style={styles.row}>
+          <Text style={styles.text}>Auto-train from my outgoing messages</Text>
+          <Switch
+            value={autoTrainingEnabled}
+            onValueChange={handleAutoTrainingToggle}
+            trackColor={{ true: colors.primary }}
+          />
+        </View>
+        <Pressable onPress={() => whatsappIntegrationService.requestAccessibilityPermission()} style={styles.secondaryButton}>
+          <Text style={styles.secondaryButtonLabel}>Open Accessibility Settings</Text>
+        </Pressable>
+        <Pressable onPress={() => whatsappIntegrationService.requestOverlayPermission()} style={styles.secondaryButton}>
+          <Text style={styles.secondaryButtonLabel}>Open Overlay Permission</Text>
+        </Pressable>
         <Text style={styles.subtitle}>Allowed Groups</Text>
         {allowedGroups.map((group) => (
           <View key={group} style={styles.groupRow}>
@@ -53,6 +95,17 @@ export default function SettingsScreen() {
             <Text style={styles.addButtonLabel}>Add</Text>
           </Pressable>
         </View>
+        {lastCapture ? (
+          <View style={styles.statusBlock}>
+            <Text style={styles.sectionTitle}>Latest capture</Text>
+            <Text style={styles.statusText}>Group: {lastCapture.matchedGroup}</Text>
+            <Text style={styles.statusText}>Incoming: {lastCapture.incomingMessages.length}</Text>
+            <Text style={styles.statusText}>Your messages: {lastCapture.outgoingMessages.length}</Text>
+            <Text style={styles.statusText}>Captured: {new Date(lastCapture.capturedAt).toLocaleString()}</Text>
+          </View>
+        ) : null}
+        {lastTrainingStatus ? <Text style={styles.statusText}>{lastTrainingStatus}</Text> : null}
+        {lastError ? <Text style={styles.errorText}>{lastError}</Text> : null}
       </View>
 
       <Pressable onPress={handleLogout} style={styles.button}>
@@ -132,6 +185,34 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "600",
     fontSize: 13
+  },
+  secondaryButton: {
+    backgroundColor: colors.canvas,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  secondaryButtonLabel: {
+    color: colors.text,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  statusBlock: {
+    gap: 6,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  statusText: {
+    color: colors.muted,
+    lineHeight: 18,
+  },
+  errorText: {
+    color: "#EF4444",
+    lineHeight: 18,
   },
   button: {
     backgroundColor: colors.primary,

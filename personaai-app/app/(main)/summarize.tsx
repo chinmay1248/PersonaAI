@@ -1,13 +1,21 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { AppScreen } from "@/components/AppScreen";
 import { colors } from "@/constants/colors";
 import { aiService } from "@/services/aiService";
+import { useOverlayStore } from "@/store/overlayStore";
 
 export default function SummarizeScreen() {
   const [messages, setMessages] = useState("bro sun\nkal project deadline hai\nmeeting 3pm pe hai");
   const [summary, setSummary] = useState<{ summary: string; action_items: string[] } | null>(null);
+  const lastCapture = useOverlayStore((state) => state.lastCapture);
+
+  useEffect(() => {
+    if (lastCapture?.allMessages.length) {
+      setMessages(lastCapture.allMessages.join("\n"));
+    }
+  }, [lastCapture?.capturedAt]);
 
   async function handleSummarize() {
     try {
@@ -19,7 +27,14 @@ export default function SummarizeScreen() {
   }
 
   return (
-    <AppScreen title="Unread summary" subtitle="Paste a stack of unread messages and get the condensed version back.">
+    <AppScreen
+      title="Unread summary"
+      subtitle={
+        lastCapture?.matchedGroup
+          ? `Using the latest captured chat from ${lastCapture.matchedGroup}, or paste your own lines below.`
+          : "Paste a stack of unread messages and get the condensed version back."
+      }
+    >
       <TextInput
         style={styles.input}
         value={messages}
@@ -38,7 +53,7 @@ export default function SummarizeScreen() {
           <Text style={styles.cardTitle}>Action items</Text>
           {summary.action_items.map((item) => (
             <Text key={item} style={styles.cardText}>
-              • {item}
+              - {item}
             </Text>
           ))}
         </View>
