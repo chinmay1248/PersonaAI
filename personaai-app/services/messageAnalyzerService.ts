@@ -5,6 +5,60 @@
  */
 
 export const messageAnalyzerService = {
+  parseScrapedPayload(
+    rawPayload: string,
+    allowedGroups: string[]
+  ): {
+    chatTitle: string;
+    matchedGroup: string | null;
+    allMessages: string[];
+    incomingMessages: string[];
+    outgoingMessages: string[];
+    capturedAt: string;
+  } | null {
+    const parsed = this.parseRawPayload(rawPayload);
+    if (parsed.nodes.length === 0) return null;
+
+    const meaningfulNodes = parsed.nodes.filter((node) => this.isMeaningfulText(node.text));
+    if (meaningfulNodes.length === 0) return null;
+
+    const chatTitle = this.extractChatTitle(meaningfulNodes, allowedGroups);
+    const matchedGroup = this.matchAllowedGroup(meaningfulNodes.map((node) => node.text), allowedGroups);
+    const messageNodes = meaningfulNodes.filter((node) => {
+      if (!this.isMessageLike(node.text)) return false;
+      if (chatTitle && node.text.trim().toLowerCase() === chatTitle.trim().toLowerCase()) return false;
+      return node.top === undefined || node.top > 140;
+    });
+
+    const dedupedMessages = this.deduplicateMessages(messageNodes.map((node) => node.text.trim()));
+    const screenWidth = parsed.screenWidth ?? 0;
+    const outgoingMessages =
+      screenWidth > 0
+        ? this.deduplicateMessages(
+            messageNodes
+              .filter((node) => typeof node.left === "number" && node.left >= screenWidth * 0.45)
+              .map((node) => node.text.trim())
+          )
+        : [];
+    const incomingMessages =
+      screenWidth > 0
+        ? this.deduplicateMessages(
+            messageNodes
+              .filter((node) => typeof node.left === "number" && node.left <= screenWidth * 0.35)
+              .map((node) => node.text.trim())
+          )
+        : dedupedMessages;
+
+    return {
+      chatTitle,
+      matchedGroup,
+      allMessages: dedupedMessages,
+      incomingMessages,
+      outgoingMessages,
+      capturedAt: parsed.capturedAt,
+    };
+  },
+
   /**
    * Extracts your sent messages from raw scraped WhatsApp text
    * Identifies messages by common WhatsApp patterns
@@ -127,5 +181,99 @@ export const messageAnalyzerService = {
 
     // Take top N
     return sorted.slice(0, count);
+  },
+
+  parseRawPayload(rawPayload: string): {
+    nodes: Array<{ text: string; left?: number; top?: number }>;
+    screenWidth?: number;
+    capturedAt: string;
+  } {
+    try {
+      const parsed = JSON.parse(rawPayload) as {
+        nodes?: Array<{ text?: string; left?: number; top?: number }>;
+        screenWidth?: number;
+        capturedAt?: string | number;
+      };
+      return {
+        nodes: Array.isArray(parsed.nodes)
+          ? parsed.nodes
+              .filter((node): node is { text: string; left?: number; top?: number } => typeof node?.text === "string")
+              .map((node) => ({
+                text: node.text,
+                left: typeof node.left === "number" ? node.left : undefined,
+                top: typeof node.top === "number" ? node.top : undefined,
+              }))
+          : [],
+        screenWidth: typeof parsed.screenWidth === "number" ? parsed.screenWidth : undefined,
+        capturedAt: new Date(parsed.capturedAt ?? Date.now()).toISOString(),
+      };
+    } catch {
+      return {
+        nodes: rawPayload.split(" || ").map((text) => ({ text })),
+        capturedAt: new Date().toISOString(),
+      };
+    }
+  },
+
+  matchAllowedGroup(candidates: string[], allowedGroups: string[]): string | null {
+    const normalizedCandidates = candidates.map((candidate) => candidate.trim().toLowerCase()).filter(Boolean);
+    for (const group of allowedGroups) {
+      const normalizedGroup = group.trim().toLowerCase();
+      if (!normalizedGroup) continue;
+      if (normalizedCandidates.some((candidate) => candidate === normalizedGroup || candidate.includes(normalizedGroup))) {
+        return group;
+      }
+    }
+
+    return null;
+  },
+
+  extractChatTitle(
+    nodes: Array<{ text: string; top?: number }>,
+    allowedGroups: string[]
+  ): string {
+    const allowedMatch = this.matchAllowedGroup(
+      nodes.map((node) => node.text),
+      allowedGroups
+    );
+    if (allowedMatch) {
+      return allowedMatch;
+    }
+
+    const headerCandidate = nodes
+      .filter((node) => (node.top ?? 9999) < 220)
+      .map((node) => node.text.trim())
+      .find((text) => this.isLikelyChatTitle(text));
+
+    return headerCandidate ?? "WhatsApp Chat";
+  },
+
+  isMeaningfulText(text: string): boolean {
+    const normalized = text.trim();
+    if (!normalized) return false;
+    if (/^\d{1,2}:\d{2}(?:\s?[AP]M)?$/i.test(normalized)) return false;
+    if (/^\d+$/.test(normalized)) return false;
+    if (/^(search|back|more options|voice call|video call|attach|camera|emoji|type a message)$/i.test(normalized)) {
+      return false;
+    }
+    if (/messages? and calls are end-to-end encrypted/i.test(normalized)) return false;
+    return true;
+  },
+
+  isMessageLike(text: string): boolean {
+    const normalized = text.trim();
+    if (!this.isMeaningfulText(normalized)) return false;
+    if (normalized.length < 2) return false;
+    if (/^(online|typing…|typing\.\.\.|last seen.*)$/i.test(normalized)) return false;
+    return /[a-zA-Z]/.test(normalized);
+  },
+
+  isLikelyChatTitle(text: string): boolean {
+    const normalized = text.trim();
+    if (!normalized) return false;
+    if (!/[a-zA-Z]/.test(normalized)) return false;
+    if (normalized.length > 60) return false;
+    if (/^(today|yesterday|you)$/i.test(normalized)) return false;
+    return true;
   }
 };
