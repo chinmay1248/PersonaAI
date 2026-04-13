@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.provider.Settings
+import android.net.Uri
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
@@ -60,6 +61,30 @@ class PersonaAIModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
         } catch (e: Exception) {
             android.util.Log.w("PersonaAIModule", "Failed to open accessibility settings: ${e.message}")
         }
+    }
+
+    @ReactMethod
+    fun requestOverlayPermission() {
+        try {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:${reactApplicationContext.packageName}")
+            )
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            reactApplicationContext.startActivity(intent)
+        } catch (e: Exception) {
+            android.util.Log.w("PersonaAIModule", "Failed to open overlay settings: ${e.message}")
+        }
+    }
+
+    @ReactMethod
+    fun addListener(eventName: String) {
+        // Required for NativeEventEmitter on Android.
+    }
+
+    @ReactMethod
+    fun removeListeners(count: Int) {
+        // Required for NativeEventEmitter on Android.
     }
 
     private fun sendEventToJS(eventName: String, payload: String) {

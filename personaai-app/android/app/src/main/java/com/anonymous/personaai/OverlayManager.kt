@@ -3,8 +3,8 @@ package com.anonymous.personaai
 import android.content.Context
 import android.graphics.PixelFormat
 import android.os.Build
+import android.provider.Settings
 import android.view.Gravity
-import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
 import android.widget.Button
@@ -16,6 +16,7 @@ class OverlayManager(private val context: Context) {
 
     fun showOverlay() {
         if (overlayView != null) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(context)) return
 
         windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
@@ -46,7 +47,11 @@ class OverlayManager(private val context: Context) {
         }
 
         overlayView = button
-        windowManager?.addView(overlayView, layoutParams)
+        try {
+            windowManager?.addView(overlayView, layoutParams)
+        } catch (_: SecurityException) {
+            overlayView = null
+        }
     }
 
     fun hideOverlay() {

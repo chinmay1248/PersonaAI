@@ -1,11 +1,13 @@
 package com.anonymous.personaai
 
 import android.accessibilityservice.AccessibilityService
+import android.graphics.Rect
+import android.content.Intent
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.util.Log
-import com.facebook.react.modules.core.DeviceEventManagerModule
-import com.facebook.react.ReactApplication
+import org.json.JSONArray
+import org.json.JSONObject
 
 class WhatsAppReaderService : AccessibilityService() {
 
@@ -19,7 +21,8 @@ class WhatsAppReaderService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event == null || event.packageName != "com.whatsapp") {
+        val sourcePackage = event?.packageName?.toString()
+        if (event == null || (sourcePackage != "com.whatsapp" && sourcePackage != "com.whatsapp.w4b")) {
             overlayManager?.hideOverlay()
             return
         }
@@ -29,24 +32,38 @@ class WhatsAppReaderService : AccessibilityService() {
         val rootNode = rootInActiveWindow ?: return
 
         // Simple scraper: grab all visible text
-        val texts = mutableListOf<String>()
-        extractText(rootNode, texts)
+        val nodes = JSONArray()
+        extractText(rootNode, nodes)
 
-        if (texts.isNotEmpty()) {
-            val combinedText = texts.joinToString(" || ")
-            Log.d(TAG, "Scraped Text: $combinedText")
+        if (nodes.length() > 0) {
+            val payload = JSONObject().apply {
+                put("packageName", sourcePackage)
+                put("screenWidth", resources.displayMetrics.widthPixels)
+                put("capturedAt", System.currentTimeMillis())
+                put("nodes", nodes)
+            }.toString()
+            Log.d(TAG, "Scraped payload size: ${nodes.length()}")
             
             // Securely transmit to PersonaAIModule Bridge via Broadcast
-            val intent = android.content.Intent("com.anonymous.personaai.WHATSAPP_SCRAPED")
-            intent.putExtra("textPayload", combinedText)
+            val intent = Intent("com.anonymous.personaai.WHATSAPP_SCRAPED")
+            intent.putExtra("textPayload", payload)
             sendBroadcast(intent)
         }
     }
 
-    private fun extractText(node: AccessibilityNodeInfo?, list: MutableList<String>) {
+    private fun extractText(node: AccessibilityNodeInfo?, list: JSONArray) {
         if (node == null) return
-        if (node.text != null && node.text.isNotEmpty()) {
-            list.add(node.text.toString())
+        val value = node.text?.toString() ?: node.contentDescription?.toString()
+        if (!value.isNullOrBlank()) {
+            val bounds = Rect()
+            node.getBoundsInScreen(bounds)
+            list.put(JSONObject().apply {
+                put("text", value)
+                put("left", bounds.left)
+                put("right", bounds.right)
+                put("top", bounds.top)
+                put("bottom", bounds.bottom)
+            })
         }
         for (i in 0 until node.childCount) {
             extractText(node.getChild(i), list)
