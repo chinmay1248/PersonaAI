@@ -7,7 +7,7 @@ settings = get_settings()
 class SummarizerService:
     @staticmethod
     def summarize(messages: list[str]) -> tuple[str, list[str]]:
-        if not settings.openai_api_key:
+        if not settings.openai_enabled:
             preview = "; ".join(messages[:3])
             summary = f"{len(messages)} messages received. Key points: {preview}"
             action_items = [f"Reply to: {message[:40]}" for message in messages[:2]]
@@ -40,4 +40,3 @@ Messages:
             return result.get("summary", ""), result.get("action_items", [])
         except Exception:
             return "Failed to parse summary", []
-

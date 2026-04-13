@@ -35,7 +35,7 @@ class ToneLearnerService:
         
         vector_id = f"local-{user_id}"
         
-        if settings.openai_api_key and settings.pinecone_api_key:
+        if settings.openai_enabled and settings.pinecone_api_key:
             try:
                 client = openai.OpenAI(api_key=settings.openai_api_key)
                 response = client.embeddings.create(
@@ -116,7 +116,7 @@ class ToneLearnerService:
         profile.formality_score = max(1.0, min(5.0, 5.0 - (len(merged_slang) * 0.5)))
 
         # Update embeddings if API keys available
-        if settings.openai_api_key and settings.pinecone_api_key:
+        if settings.openai_enabled and settings.pinecone_api_key:
             try:
                 client = openai.OpenAI(api_key=settings.openai_api_key)
                 # Use a sample of messages for embedding

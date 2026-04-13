@@ -6,7 +6,7 @@ settings = get_settings()
 class MoodDetectorService:
     @classmethod
     def detect(cls, text: str) -> str:
-        if not settings.openai_api_key:
+        if not settings.openai_enabled:
             lowered = text.lower()
             if any(word in lowered for word in {"haha", "lol", "great", "nice", "awesome", "fun", "love"}):
                 return "happy"
@@ -33,4 +33,3 @@ class MoodDetectorService:
             return mood if mood in allowed else "neutral"
         except Exception:
             return "neutral"
-
