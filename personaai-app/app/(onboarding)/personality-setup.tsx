@@ -7,6 +7,7 @@ import { PersonalitySelector } from "@/components/PersonalitySelector";
 import { colors } from "@/constants/colors";
 import { chatService } from "@/services/chatService";
 import { useChatStore } from "@/store/chatStore";
+import { useOverlayStore } from "@/store/overlayStore";
 
 export default function PersonalitySetupScreen() {
   const { chatName } = useLocalSearchParams<{ chatName: string }>();
@@ -14,6 +15,7 @@ export default function PersonalitySetupScreen() {
   const [loading, setLoading] = useState(false);
   const setChats = useChatStore((state) => state.setChats);
   const setActiveChatId = useChatStore((state) => state.setActiveChatId);
+  const syncAllowedGroups = useOverlayStore((state) => state.syncAllowedGroups);
 
   async function handleNext() {
     setLoading(true);
@@ -26,6 +28,7 @@ export default function PersonalitySetupScreen() {
       });
       setChats([config]);
       setActiveChatId(config.id);
+      syncAllowedGroups([config.chat_label]);
       router.push("/(onboarding)/teach-ai");
     } catch (error) {
       Alert.alert("Setup failed", error instanceof Error ? error.message : "Could not create chat config. Please try again.");
