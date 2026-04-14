@@ -21,6 +21,7 @@ type OverlayState = {
   toggleOverlay: () => void;
   setAutoTrainingEnabled: (enabled: boolean) => void;
   addAllowedGroup: (group: string) => void;
+  syncAllowedGroups: (groups: string[]) => void;
   removeAllowedGroup: (group: string) => void;
   setLastCapture: (capture: ScrapedChatCapture | null) => void;
   setLastTrainingStatus: (status: string | null) => void;
@@ -77,6 +78,19 @@ export const useOverlayStore = create<OverlayState>((set) => ({
       const nextGroups = [...state.allowedGroups, normalized];
       persistGroups(nextGroups);
       return { allowedGroups: nextGroups };
+    }),
+  syncAllowedGroups: (groups) =>
+    set((state) => {
+      const merged = [...state.allowedGroups];
+      for (const group of groups) {
+        const normalized = group.trim();
+        if (!normalized) continue;
+        if (merged.some((existing) => existing.toLowerCase() === normalized.toLowerCase())) continue;
+        merged.push(normalized);
+      }
+
+      persistGroups(merged);
+      return { allowedGroups: merged };
     }),
   removeAllowedGroup: (group) =>
     set((state) => {

@@ -1,5 +1,7 @@
 import { create } from "zustand";
 
+import { storageService } from "@/services/storageService";
+
 type ChatConfig = {
   id: string;
   chat_label: string;
@@ -15,9 +17,15 @@ type ChatState = {
   setActiveChatId: (id: string) => void;
 };
 
+const ACTIVE_CHAT_ID_KEY = "activeChatId";
+
 export const useChatStore = create<ChatState>((set) => ({
   chats: [],
-  activeChatId: null,
+  activeChatId: storageService.getString(ACTIVE_CHAT_ID_KEY),
   setChats: (chats) => set({ chats }),
-  setActiveChatId: (id) => set({ activeChatId: id })
+  setActiveChatId: (id) =>
+    set(() => {
+      storageService.setString(ACTIVE_CHAT_ID_KEY, id);
+      return { activeChatId: id };
+    })
 }));
