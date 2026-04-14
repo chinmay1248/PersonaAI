@@ -10,19 +10,19 @@ export default function HomeScreen() {
       <View style={styles.card}>
         <Text style={styles.title}>Quick actions</Text>
         <Link href="/(main)/reply" style={styles.link}>
-          🔁  Generate a reply
+          Generate a reply
         </Link>
         <Link href="/(main)/summarize" style={styles.link}>
-          📋  Summarize unread messages
+          Summarize unread messages
         </Link>
         <Link href="/(main)/chat-configs" style={styles.link}>
-          ⚙️  Manage chat configs
+          Manage chat configs
         </Link>
         <Link href="/(main)/tone-profile" style={styles.link}>
-          🎭  View tone profile
+          View tone profile
         </Link>
         <Link href="/(main)/settings" style={styles.link}>
-          🔧  Settings
+          Settings
         </Link>
       </View>
     </AppScreen>

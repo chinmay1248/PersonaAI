@@ -11,6 +11,7 @@ import { useOverlayStore } from "@/store/overlayStore";
 
 export default function SettingsScreen() {
   const logout = useAuthStore((state) => state.logout);
+  const isLoggedIn = useAuthStore((state) => Boolean(state.accessToken));
   const {
     isOverlayActive,
     autoTrainingEnabled,
@@ -25,6 +26,15 @@ export default function SettingsScreen() {
     setLastError,
   } = useOverlayStore();
   const [newGroup, setNewGroup] = useState("");
+
+  function handleOverlayToggle() {
+    const nextValue = !isOverlayActive;
+    toggleOverlay();
+    if (nextValue) {
+      whatsappIntegrationService.requestAccessibilityPermission();
+      whatsappIntegrationService.requestOverlayPermission();
+    }
+  }
 
   function handleLogout() {
     logout();
@@ -41,6 +51,10 @@ export default function SettingsScreen() {
   async function handleAutoTrainingToggle(enabled: boolean) {
     try {
       if (enabled) {
+        if (!isLoggedIn) {
+          Alert.alert("Login required", "Sign in before enabling automatic WhatsApp training.");
+          return;
+        }
         await messageTrainingService.enableAutoTraining();
       } else {
         await messageTrainingService.disableAutoTraining();
@@ -58,7 +72,7 @@ export default function SettingsScreen() {
         <Text style={styles.sectionTitle}>WhatsApp Native Overlay</Text>
         <View style={styles.row}>
           <Text style={styles.text}>Enable WhatsApp Extension</Text>
-          <Switch value={isOverlayActive} onValueChange={toggleOverlay} trackColor={{ true: colors.primary }} />
+          <Switch value={isOverlayActive} onValueChange={handleOverlayToggle} trackColor={{ true: colors.primary }} />
         </View>
         <View style={styles.row}>
           <Text style={styles.text}>Auto-train from my outgoing messages</Text>
@@ -106,6 +120,9 @@ export default function SettingsScreen() {
         ) : null}
         {lastTrainingStatus ? <Text style={styles.statusText}>{lastTrainingStatus}</Text> : null}
         {lastError ? <Text style={styles.errorText}>{lastError}</Text> : null}
+        {!isLoggedIn ? (
+          <Text style={styles.statusText}>Sign in to save WhatsApp training samples and use live reply generation.</Text>
+        ) : null}
       </View>
 
       <Pressable onPress={handleLogout} style={styles.button}>

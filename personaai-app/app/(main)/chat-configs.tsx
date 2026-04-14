@@ -5,15 +5,18 @@ import { AppScreen } from "@/components/AppScreen";
 import { ChatConfigCard } from "@/components/ChatConfigCard";
 import { chatService } from "@/services/chatService";
 import { useChatStore } from "@/store/chatStore";
+import { useOverlayStore } from "@/store/overlayStore";
 
 export default function ChatConfigsScreen() {
   const { chats, setChats, activeChatId, setActiveChatId } = useChatStore();
+  const syncAllowedGroups = useOverlayStore((state) => state.syncAllowedGroups);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     chatService.getConfigs()
       .then((data) => {
         setChats(data);
+        syncAllowedGroups(data.map((chat: { chat_label: string }) => chat.chat_label));
         setLoading(false);
       })
       .catch((error) => {
