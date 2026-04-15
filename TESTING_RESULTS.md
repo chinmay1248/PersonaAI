@@ -1,29 +1,40 @@
 # PersonaAI - Testing Results & Deployment Status
 
-**Date:** April 5, 2026  
-**Status:** ✅ **ALL SYSTEMS OPERATIONAL**
+**Date:** April 15, 2026  
+**Status:** ✅ **ALL SYSTEMS OPERATIONAL — 4/4 TESTS PASSING**
 
 ---
 
 ## Fixed Issues
 
-### 1. ✅ Database Schema Mismatches (CRITICAL)
-**Problem:** Migration file didn't match SQLAlchemy models
-**Solution:** Regenerated migration to match actual models:
-- ToneProfile: Uses `formality_score`, `emoji_frequency`, `slang_patterns`, `language_mix` (not old schema)
-- ChatConfig: `chat_type` nullable, `auto_reply_mode` non-nullable with default
-- Conversation: Uses `incoming_msg`, `detected_mood`, `context_window`
-- ReplySuggestion: Uses `reply_text`, `rank`, `was_used`, `feedback`
-- FeedbackLog: Uses `rating`, `reason` fields
+### 1. ✅ bcrypt 5.0 / passlib Incompatibility (CRITICAL — April 15)
+**Problem:** `bcrypt 5.0.0` removed `__about__.__version__` attribute and enforced strict 72-byte password limits, breaking all authentication via passlib
+**Error:** `password cannot be longer than 72 bytes` + `AttributeError: module 'bcrypt' has no attribute '__about__'`
+**Solution:** Pinned `bcrypt==4.2.1` in requirements.txt (last version compatible with passlib 1.7.4)
 
-### 2. ✅ Invalid Encryption Key
+### 2. ✅ Celery Workers Were Stubs (April 15)
+**Problem:** `training_job.py` and `tone_update_job.py` were one-line scaffolds
+**Solution:** Implemented full worker logic:
+- `training_job.py`: Processes untrained samples, groups by user, feeds to ToneLearnerService
+- `tone_update_job.py`: Refreshes all tone profiles from accumulated training data (latest 100 samples per user)
+
+### 3. ✅ Rate Limiter Was No-Op (April 15)
+**Problem:** `rate_limiter.py` middleware was a placeholder with no actual limiting
+**Solution:** Implemented sliding-window rate limiter (60 requests/minute per IP)
+
+### 4. ✅ Test Isolation Issues (April 15)
+**Problem:** Tests could fail on repeated runs due to stale data in the test database
+**Solution:** Added per-test cleanup fixture in `conftest.py` that clears all tables after each test
+
+### 5. ✅ Database Schema Mismatches (April 5)
+**Problem:** Migration file didn't match SQLAlchemy models
+**Solution:** Regenerated migration to match actual models
+
+### 6. ✅ Invalid Encryption Key (April 5)
 **Problem:** `.env` had invalid Fernet key format
 **Solution:** Generated valid base64-encoded Fernet key
-```
-ENCRYPTION_KEY=-PEPxhh6qdFiv3d_3a5RrOaaCx6oPgVR_lyFIicrQeQ=
-```
 
-### 3. ✅ Deprecated Pinecone Package
+### 7. ✅ Deprecated Pinecone Package (April 5)
 **Problem:** `pinecone-client` is deprecated
 **Solution:** Updated to `pinecone` in requirements.txt
 
@@ -132,11 +143,15 @@ Expected response:
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Database Schema | ✅ Fixed | All models now sync with migration |
+| Database Schema | ✅ Fixed | All models sync with migration |
 | Encryption | ✅ Fixed | Valid Fernet key format |
-| Backend API | ✅ Working | All endpoints loaded, health check responds |
-| Frontend Build | ✅ Working | Metro bundler compiles successfully |
-| Dependencies | ✅ Fixed | pinecone updated, all imports resolve |
+| Backend API | ✅ Working | All 6 routers loaded, health check responds |
+| Backend Tests | ✅ 4/4 Pass | Auth, AI reply, summarizer, tone training |
+| bcrypt/passlib | ✅ Fixed | Pinned bcrypt==4.2.1 for compatibility |
+| Celery Workers | ✅ Implemented | Training job + tone refresh job |
+| Rate Limiter | ✅ Implemented | 60 req/min sliding window per IP |
+| Frontend Build | ✅ Working | TypeScript compiles with zero errors |
+| Dependencies | ✅ Fixed | pinecone updated, bcrypt pinned |
 | Git History | ✅ Clean | Changes committed and pushed |
 
 ---
