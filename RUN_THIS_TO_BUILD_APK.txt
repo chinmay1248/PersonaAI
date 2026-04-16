@@ -1,0 +1,170 @@
+================================================================================
+                    PERSONAAI - BUILD APK FOR YOUR PHONE
+================================================================================
+
+YOUR .env IS ALREADY CONFIGURED WITH RAILWAY BACKEND:
+  EXPO_PUBLIC_API_URL=https://personaai-backend-production-4490.up.railway.app/v1
+
+================================================================================
+                           3 WAYS TO BUILD
+================================================================================
+
+OPTION 1: DOUBLE-CLICK METHOD (EASIEST)
+=========================================
+1. Open Windows File Manager
+2. Navigate to: c:\Users\DELL\Desktop\PersonaAI\
+3. Find file: BUILD_APK.bat
+4. Double-click it
+5. A black window will appear
+6. Follow the prompts
+7. Wait for "Build successful" message
+8. Copy the download link shown
+
+Result: APK download link in the terminal
+
+
+OPTION 2: COMMAND PROMPT METHOD
+================================
+1. Press Windows Key + R
+2. Type: cmd
+3. Press Enter
+4. Paste this command:
+   cd /d c:\Users\DELL\Desktop\PersonaAI & BUILD_APK.bat
+5. Press Enter
+6. Wait for build to complete
+7. Copy the download link
+
+Result: APK download link in the terminal
+
+
+OPTION 3: MANUAL STEP-BY-STEP (If batch fails)
+================================================
+1. Open Command Prompt
+2. Run these commands one by one:
+
+   cd c:\Users\DELL\Desktop\PersonaAI\personaai-app
+   npm install
+   eas build --platform android --profile preview
+
+3. Wait for "Build successful" 
+4. Copy the download link
+
+Result: APK download link
+
+================================================================================
+                      AFTER YOU GET THE DOWNLOAD LINK
+================================================================================
+
+1. DOWNLOAD APK
+   - Copy the download link from terminal
+   - Paste in your browser
+   - Save file: PersonaAI.apk (150-200 MB)
+
+2. TRANSFER TO PHONE
+   - USB cable: Copy to phone Downloads folder
+   - Email: Email APK to yourself, download on phone
+   - Google Drive: Upload to Drive, download on phone
+
+3. INSTALL ON PHONE
+   - Open Files app
+   - Go to Downloads folder
+   - Tap PersonaAI.apk
+   - Tap "Install"
+   - Wait 1-2 minutes
+
+4. LAUNCH APP
+   - Find PersonaAI icon on home screen
+   - Tap to open
+   - See login screen
+
+5. LOGIN
+   Email: demo@persona.ai
+   Password: StrongPass123
+   
+   Tap "Demo Login" button
+
+6. COMPLETE ONBOARDING
+   - 4 screens will appear
+   - Select tone/mood preferences
+   - Tap "Start Using PersonaAI"
+
+7. ENJOY!
+   - You're ready to use PersonaAI
+   - Generate AI replies for WhatsApp messages
+   - View training history
+   - Customize settings
+
+================================================================================
+                        EXPECTED TIMING
+================================================================================
+
+npm install:          3-5 minutes
+EAS build:            5-15 minutes
+Download APK:         1-5 minutes (depends on internet)
+Transfer to phone:    1 minute
+Install on phone:     1-2 minutes
+
+TOTAL:                20-35 minutes
+
+================================================================================
+                      TROUBLESHOOTING
+================================================================================
+
+Q: "Command not found" error
+A: Node.js not installed. Install from https://nodejs.org/
+
+Q: "npm install" fails
+A: Run: npm cache clean --force
+   Then: npm install again
+
+Q: EAS build fails
+A: Run: npm cache clean --force
+   Then: npm install
+   Then: eas build --platform android --profile preview
+
+Q: Build takes more than 15 minutes
+A: This is normal! EAS cloud build can be slow
+   Keep waiting, don't close the window
+
+Q: Can't find download link
+A: Look for blue text that says "Download your build:"
+   Copy the full link
+
+Q: APK won't install on phone
+A: Enable Unknown Sources: Settings → Security → Unknown Sources
+   Then try installing again
+
+Q: App crashes when opening
+A: Uninstall and reinstall the APK
+   Make sure backend (Railway) is running
+
+Q: Can't login
+A: Check phone has internet connection
+   Check backend is deployed at Railway
+
+================================================================================
+                        DEMO ACCOUNT
+================================================================================
+
+Ready to use immediately after app launches:
+
+Email:    demo@persona.ai
+Password: StrongPass123
+
+Just tap "Demo Login" button - no need to type!
+
+After testing, you can create your own account via Sign Up button.
+
+================================================================================
+                           START NOW!
+================================================================================
+
+Option 1: Double-click BUILD_APK.bat
+Option 2: Open Command Prompt and follow Option 2 above
+Option 3: Manual commands in Option 3
+
+The script will handle everything and show you the APK download link!
+
+Questions? Read BUILD_AND_INSTALL_GUIDE.md for detailed instructions.
+
+================================================================================
