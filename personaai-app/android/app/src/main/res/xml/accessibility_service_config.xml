@@ -4,6 +4,7 @@
     android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
     android:packageNames="com.whatsapp,com.whatsapp.w4b"
     android:accessibilityFeedbackType="feedbackGeneric"
-    android:notificationTimeout="100"
-    android:accessibilityFlags="flagDefault"
-    android:canRetrieveWindowContent="true" />
+    android:notificationTimeout="300"
+    android:accessibilityFlags="flagDefault|flagIncludeNotImportantViews|flagRetrieveInteractiveWindows"
+    android:canRetrieveWindowContent="true"
+    android:canPerformGestures="true" />
