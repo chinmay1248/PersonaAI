@@ -1,5 +1,4 @@
 import json
-import openai
 from sqlalchemy.orm import Session
 
 from app.models.chat_config import ChatConfig
@@ -9,6 +8,7 @@ from app.models.tone_profile import ToneProfile
 from app.schemas.ai import GenerateReplyRequest
 from app.services.encryption import EncryptionService
 from app.services.mood_detector import MoodDetectorService
+from app.services.openai_client import create_chat_completion, parse_json_response
 from app.utils.prompt_builder import build_reply_prompt
 from app.config import get_settings
 
@@ -58,26 +58,28 @@ class AIEngineService:
         reply_texts = []
         if settings.openai_enabled:
             try:
-                client = openai.OpenAI(api_key=settings.openai_api_key)
-                system_prompt = f"{prompt['system']} You must provide exactly {payload.count} varied reply options formatted ONLY as a valid JSON array of strings. Do not include markdown formatting. Return JSON like: {{\"replies\": [\"reply 1\", \"reply 2\"]}}"
-                
-                response = client.chat.completions.create(
+                system_prompt = (
+                    f"{prompt['system']} You must provide exactly {payload.count} varied reply options formatted ONLY as a valid JSON array of strings. "
+                    "Do not include markdown formatting. Return JSON like: {\"replies\": [\"reply 1\", \"reply 2\"]}"
+                )
+                response = create_chat_completion(
                     model="gpt-4o",
                     messages=[
                         {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": prompt['user']}
+                        {"role": "user", "content": prompt['user']},
                     ],
                     max_tokens=600,
                     temperature=0.8,
-                    response_format={"type": "json_object"}
+                    response_format={"type": "json_object"},
                 )
-                
-                response_text = response.choices[0].message.content
-                parsed_replies = json.loads(response_text)
-                if isinstance(parsed_replies, dict) and "replies" in parsed_replies:
-                    reply_list = parsed_replies["replies"]
-                    if isinstance(reply_list, list):
-                        reply_texts = [str(r) for r in reply_list[:payload.count]]
+
+                if response and response.choices:
+                    response_text = response.choices[0].message.content
+                    parsed_replies = parse_json_response(response_text)
+                    if isinstance(parsed_replies, dict) and "replies" in parsed_replies:
+                        reply_list = parsed_replies["replies"]
+                        if isinstance(reply_list, list):
+                            reply_texts = [str(r) for r in reply_list[:payload.count]]
             except Exception as e:
                 print(f"Failed to fetch from OpenAI: {e}")
         

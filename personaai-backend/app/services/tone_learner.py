@@ -3,13 +3,13 @@ from datetime import datetime, timezone
 import re
 import json
 
-import openai
 from pinecone import Pinecone
 from sqlalchemy.orm import Session
 
 from app.models.tone_profile import ToneProfile
 from app.models.training_sample import TrainingSample
 from app.config import get_settings
+from app.services.openai_client import create_embeddings
 
 settings = get_settings()
 
@@ -36,14 +36,9 @@ class ToneLearnerService:
         vector_id = f"local-{user_id}"
         
         if settings.openai_enabled and settings.pinecone_api_key:
-            try:
-                client = openai.OpenAI(api_key=settings.openai_api_key)
-                response = client.embeddings.create(
-                    input="\\n".join(samples),
-                    model="text-embedding-3-small"
-                )
+            response = create_embeddings(input="\n".join(samples), model="text-embedding-3-small")
+            if response and response.data:
                 embedding = response.data[0].embedding
-                
                 pc = Pinecone(api_key=settings.pinecone_api_key)
                 index_name = "personaai-tone"
                 try:
@@ -52,8 +47,6 @@ class ToneLearnerService:
                     vector_id = user_id
                 except Exception as e:
                     print(f"Failed to upsert to pinecone: {e}")
-            except Exception as e:
-                print(f"Failed to generate embeddings: {e}")
 
         profile = db.query(ToneProfile).filter(ToneProfile.user_id == user_id).one_or_none()
         if not profile:
@@ -117,16 +110,10 @@ class ToneLearnerService:
 
         # Update embeddings if API keys available
         if settings.openai_enabled and settings.pinecone_api_key:
-            try:
-                client = openai.OpenAI(api_key=settings.openai_api_key)
-                # Use a sample of messages for embedding
-                sample_messages = messages[:10] if len(messages) > 10 else messages
-                response = client.embeddings.create(
-                    input="\\n".join(sample_messages),
-                    model="text-embedding-3-small"
-                )
+            sample_messages = messages[:10] if len(messages) > 10 else messages
+            response = create_embeddings(input="\n".join(sample_messages), model="text-embedding-3-small")
+            if response and response.data:
                 embedding = response.data[0].embedding
-                
                 pc = Pinecone(api_key=settings.pinecone_api_key)
                 index_name = "personaai-tone"
                 try:
@@ -134,8 +121,6 @@ class ToneLearnerService:
                     index.upsert(vectors=[(user_id, embedding, {"user_id": user_id})])
                 except Exception as e:
                     print(f"Failed to upsert to pinecone: {e}")
-            except Exception as e:
-                print(f"Failed to generate embeddings: {e}")
 
         # Save training samples
         for message in messages:

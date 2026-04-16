@@ -1,6 +1,6 @@
 import json
-import openai
 from app.config import get_settings
+from app.services.openai_client import create_chat_completion, parse_json_response
 
 settings = get_settings()
 
@@ -13,7 +13,6 @@ class SummarizerService:
             action_items = [f"Reply to: {message[:40]}" for message in messages[:2]]
             return summary, action_items
 
-        client = openai.OpenAI(api_key=settings.openai_api_key)
         combined = "\n".join(f"- {msg}" for msg in messages)
         prompt = f"""Summarize these incoming messages and identify action items.
 Return ONLY a valid JSON object with this exact structure, nothing else:
@@ -25,18 +24,18 @@ Return ONLY a valid JSON object with this exact structure, nothing else:
 Messages:
 {combined}
 """
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=300,
-                temperature=0.3,
-                response_format={"type": "json_object"}
-            )
-        
-            result = json.loads(response.choices[0].message.content)
-            return result.get("summary", ""), result.get("action_items", [])
-        except Exception:
+        response = create_chat_completion(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=300,
+            temperature=0.3,
+            response_format={"type": "json_object"},
+        )
+
+        if not response or not response.choices:
             return "Failed to parse summary", []
+
+        result = parse_json_response(response.choices[0].message.content)
+        if isinstance(result, dict):
+            return result.get("summary", ""), result.get("action_items", [])
+        return "Failed to parse summary", []
