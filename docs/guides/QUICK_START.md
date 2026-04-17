@@ -72,7 +72,7 @@ When prompted, select your platform:
 
 Your app is now running locally with all fixes applied.
 
-**Next Step:** See `DEPLOYMENT.md` for production deployment instructions.
+**Next Step:** See `docs/guides/DEPLOYMENT.md` for production deployment instructions.
 
 ### Common Issues?
 
