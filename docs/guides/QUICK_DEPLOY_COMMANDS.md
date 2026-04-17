@@ -152,7 +152,7 @@ python
 ```powershell
 # Run the automated script
 cd C:\Users\DELL\Desktop\PersonaAI
-powershell -ExecutionPolicy Bypass -File .\DEPLOY_TO_PHONE.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\deploy\DEPLOY_TO_PHONE.ps1
 ```
 
 This does everything:
@@ -213,4 +213,4 @@ Create your own account via Sign Up on login screen.
 
 ---
 
-**Questions?** Check `PHONE_SETUP_GUIDE.md` for detailed explanations.
+**Questions?** Check `docs/guides/PHONE_SETUP_GUIDE.md` for detailed explanations.

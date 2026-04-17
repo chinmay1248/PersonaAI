@@ -30,7 +30,7 @@ Run the automated deployment script that handles everything:
 ```powershell
 # Open PowerShell in PersonaAI directory
 cd C:\Users\DELL\Desktop\PersonaAI
-powershell -ExecutionPolicy Bypass -File .\DEPLOY_TO_PHONE.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\deploy\DEPLOY_TO_PHONE.ps1
 ```
 
 **What this script does:**
@@ -355,7 +355,7 @@ After successful installation:
 4. **Deploy Backend** (If not done)
    - If using local backend, it must stay running
    - For always-available app, deploy to Railway:
-     - Follow DEPLOYMENT.md in repo
+     - Follow docs/guides/DEPLOYMENT.md in repo
      - Get permanent Railway URL
      - Update .env with Railway URL
      - Rebuild APK

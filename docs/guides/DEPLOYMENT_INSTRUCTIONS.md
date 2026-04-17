@@ -24,7 +24,8 @@ After following these instructions, you'll have:
 **For non-technical users - everything automated in one command:**
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File C:\Users\DELL\Desktop\PersonaAI\DEPLOY_TO_PHONE.ps1
+cd C:\Users\DELL\Desktop\PersonaAI
+powershell -ExecutionPolicy Bypass -File .\scripts\deploy\DEPLOY_TO_PHONE.ps1
 ```
 
 This script:
@@ -41,7 +42,7 @@ This script:
 
 **For users comfortable with terminal:**
 
-See: `QUICK_DEPLOY_COMMANDS.md`
+See: `docs/guides/QUICK_DEPLOY_COMMANDS.md`
 
 ```powershell
 # Step 1: Install EAS CLI
@@ -68,7 +69,7 @@ eas build --platform android --profile preview
 
 **For detailed understanding:**
 
-See: `PHONE_SETUP_GUIDE.md` (10,000+ words)
+See: `docs/guides/PHONE_SETUP_GUIDE.md`
 
 Covers:
 - Prerequisites
@@ -119,10 +120,10 @@ Before starting, verify:
 
 | File | Purpose |
 |------|---------|
-| `DEPLOY_TO_PHONE.ps1` | Automated deployment script |
-| `PHONE_SETUP_GUIDE.md` | Complete 10,000-word guide with screenshots |
-| `QUICK_DEPLOY_COMMANDS.md` | Command reference and troubleshooting |
-| `DEPLOYMENT_INSTRUCTIONS.md` | This file - overview |
+| `scripts/deploy/DEPLOY_TO_PHONE.ps1` | Automated deployment script |
+| `docs/guides/PHONE_SETUP_GUIDE.md` | Complete phone setup guide |
+| `docs/guides/QUICK_DEPLOY_COMMANDS.md` | Command reference and troubleshooting |
+| `docs/guides/DEPLOYMENT_INSTRUCTIONS.md` | This file - overview |
 
 ---
 
@@ -215,7 +216,7 @@ Before starting, verify:
 → Seed database: `python app/cli/seed_db.py` in backend
 → Restart backend
 
-See: `PHONE_SETUP_GUIDE.md` → Troubleshooting for more solutions
+See: `docs/guides/PHONE_SETUP_GUIDE.md` for troubleshooting.
 
 ---
 
@@ -288,11 +289,11 @@ See: `PHONE_SETUP_GUIDE.md` → Troubleshooting for more solutions
 | Resource | Link |
 |----------|------|
 | Main Documentation | `README.md` |
-| Detailed Setup Guide | `PHONE_SETUP_GUIDE.md` |
-| Quick Commands | `QUICK_DEPLOY_COMMANDS.md` |
-| Testing Results | `TESTING_RESULTS.md` |
-| Completion Summary | `COMPLETION_SUMMARY.md` |
-| Deployment Docs | `DEPLOYMENT.md` |
+| Detailed Setup Guide | `docs/guides/PHONE_SETUP_GUIDE.md` |
+| Quick Commands | `docs/guides/QUICK_DEPLOY_COMMANDS.md` |
+| Testing Results | `docs/reports/TESTING_RESULTS.md` |
+| Completion Summary | `docs/reports/COMPLETION_SUMMARY.md` |
+| Deployment Docs | `docs/guides/DEPLOYMENT.md` |
 | GitHub Repo | https://github.com/chinmay1248/PersonaAI |
 
 ---
@@ -310,7 +311,7 @@ See: `PHONE_SETUP_GUIDE.md` → Troubleshooting for more solutions
 
 PersonaAI is ready to deploy. Pick your deployment method above and follow the instructions. You'll have a fully functional AI assistant on your phone in 20-45 minutes.
 
-**Questions?** Check `PHONE_SETUP_GUIDE.md` - it has answers to everything!
+**Questions?** Check `docs/guides/PHONE_SETUP_GUIDE.md`.
 
 ---
 
@@ -322,6 +323,6 @@ PersonaAI is ready to deploy. Pick your deployment method above and follow the i
 
 # Choose Your Path:
 
-1. **→ Quick & Automated?** Run: `DEPLOY_TO_PHONE.ps1`
-2. **→ Command Reference?** Read: `QUICK_DEPLOY_COMMANDS.md`
-3. **→ Detailed Guide?** Read: `PHONE_SETUP_GUIDE.md`
+1. **→ Quick & Automated?** Run: `scripts/deploy/DEPLOY_TO_PHONE.ps1`
+2. **→ Command Reference?** Read: `docs/guides/QUICK_DEPLOY_COMMANDS.md`
+3. **→ Detailed Guide?** Read: `docs/guides/PHONE_SETUP_GUIDE.md`
