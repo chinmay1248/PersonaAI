@@ -320,7 +320,7 @@ These can be added post-launch based on user feedback.
 - ✅ This completion summary
 - ✅ Code comments and docstrings updated
 - ✅ Architecture documented in commit messages
-- ✅ Deployment steps in DEPLOYMENT.md
+- ✅ Deployment steps in docs/guides/DEPLOYMENT.md
 
 ### Git
 - ✅ Commit: `634a9dc` - "feat: Add Celery scheduler, expand test coverage, complete WhatsApp integration"
