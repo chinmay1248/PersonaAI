@@ -7,7 +7,7 @@ settings = get_settings()
 class SummarizerService:
     @staticmethod
     def summarize(messages: list[str]) -> tuple[str, list[str]]:
-        if not settings.openai_enabled:
+        if not settings.llm_enabled:
             preview = "; ".join(messages[:3])
             summary = f"{len(messages)} messages received. Key points: {preview}"
             action_items = [f"Reply to: {message[:40]}" for message in messages[:2]]
@@ -25,7 +25,7 @@ Messages:
 {combined}
 """
         response = create_chat_completion(
-            model="gpt-4o",
+            model=settings.resolved_chat_model,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=300,
             temperature=0.3,

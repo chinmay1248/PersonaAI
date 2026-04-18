@@ -6,7 +6,7 @@ settings = get_settings()
 class MoodDetectorService:
     @classmethod
     def detect(cls, text: str) -> str:
-        if not settings.openai_enabled:
+        if not settings.llm_enabled:
             lowered = text.lower()
             if any(word in lowered for word in {"haha", "lol", "great", "nice", "awesome", "fun", "love"}):
                 return "happy"
@@ -17,7 +17,7 @@ class MoodDetectorService:
             return "neutral"
 
         response = create_chat_completion(
-            model="gpt-4o-mini",
+            model=settings.resolved_fast_model,
             messages=[
                 {
                     "role": "system",

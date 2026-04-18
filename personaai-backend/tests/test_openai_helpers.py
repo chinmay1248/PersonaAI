@@ -18,7 +18,7 @@ def test_parse_json_response_returns_none_for_invalid_json() -> None:
 
 def test_create_chat_completion_returns_none_when_disabled() -> None:
     settings = get_settings()
-    assert not settings.openai_enabled
+    assert not settings.llm_enabled
     result = create_chat_completion(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": "Hello"}],

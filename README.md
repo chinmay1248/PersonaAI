@@ -42,6 +42,15 @@ pip install -r requirements.txt
 python -m uvicorn app.main:app --reload
 ```
 
+For free local AI features, run Ollama and point the backend at it:
+
+```bash
+ollama pull llama3.2:3b
+ollama pull nomic-embed-text
+```
+
+Then set `ENABLE_LLM=true` and `LLM_PROVIDER=ollama` in `personaai-backend/.env`.
+
 ### App
 
 ```bash

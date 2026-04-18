@@ -5,6 +5,8 @@ import pytest
 
 os.environ["DATABASE_URL"] = "sqlite:///./.test_personaai.db"
 os.environ["OPENAI_API_KEY"] = ""
+os.environ["LLM_API_KEY"] = ""
+os.environ["ENABLE_LLM"] = "false"
 
 from app.database import Base, engine  # noqa: E402
 import app.models  # noqa: E402,F401

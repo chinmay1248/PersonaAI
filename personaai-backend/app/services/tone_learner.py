@@ -35,8 +35,8 @@ class ToneLearnerService:
         
         vector_id = f"local-{user_id}"
         
-        if settings.openai_enabled and settings.pinecone_api_key:
-            response = create_embeddings(input="\n".join(samples), model="text-embedding-3-small")
+        if settings.llm_enabled and settings.pinecone_api_key:
+            response = create_embeddings(input="\n".join(samples), model=settings.resolved_embedding_model)
             if response and response.data:
                 embedding = response.data[0].embedding
                 pc = Pinecone(api_key=settings.pinecone_api_key)
@@ -109,9 +109,9 @@ class ToneLearnerService:
         profile.formality_score = max(1.0, min(5.0, 5.0 - (len(merged_slang) * 0.5)))
 
         # Update embeddings if API keys available
-        if settings.openai_enabled and settings.pinecone_api_key:
+        if settings.llm_enabled and settings.pinecone_api_key:
             sample_messages = messages[:10] if len(messages) > 10 else messages
-            response = create_embeddings(input="\n".join(sample_messages), model="text-embedding-3-small")
+            response = create_embeddings(input="\n".join(sample_messages), model=settings.resolved_embedding_model)
             if response and response.data:
                 embedding = response.data[0].embedding
                 pc = Pinecone(api_key=settings.pinecone_api_key)

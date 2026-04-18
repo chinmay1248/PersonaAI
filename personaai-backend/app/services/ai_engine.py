@@ -56,14 +56,14 @@ class AIEngineService:
         db.flush()
 
         reply_texts = []
-        if settings.openai_enabled:
+        if settings.llm_enabled:
             try:
                 system_prompt = (
                     f"{prompt['system']} You must provide exactly {payload.count} varied reply options formatted ONLY as a valid JSON array of strings. "
                     "Do not include markdown formatting. Return JSON like: {\"replies\": [\"reply 1\", \"reply 2\"]}"
                 )
                 response = create_chat_completion(
-                    model="gpt-4o",
+                    model=settings.resolved_chat_model,
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": prompt['user']},
@@ -81,7 +81,7 @@ class AIEngineService:
                         if isinstance(reply_list, list):
                             reply_texts = [str(r) for r in reply_list[:payload.count]]
             except Exception as e:
-                print(f"Failed to fetch from OpenAI: {e}")
+                print(f"Failed to fetch replies from {settings.normalized_llm_provider}: {e}")
         
         # Fallback if no API key or API failed
         if not reply_texts:

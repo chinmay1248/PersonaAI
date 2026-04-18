@@ -13,10 +13,15 @@ Get PersonaAI running in 5 minutes!
 # 1. Navigate to backend
 cd personaai-backend
 
-# 2. Start with docker-compose (includes DB, cache, and API)
+# 2. Optional: enable the free local AI provider
+# Install Ollama first, then in another terminal run:
+ollama pull llama3.2:3b
+ollama pull nomic-embed-text
+
+# 3. Start with docker-compose (includes DB, cache, and API)
 docker-compose up -d
 
-# 3. Verify it's working
+# 4. Verify it's working
 curl http://localhost:8000/v1/health
 ```
 
@@ -27,6 +32,17 @@ curl http://localhost:8000/v1/health
 - Redis cache on port 6379
 - FastAPI server on port 8000
 - Celery worker for async tasks
+
+To turn on AI replies locally, set these values in `personaai-backend/.env`:
+
+```env
+ENABLE_LLM=true
+LLM_PROVIDER=ollama
+LLM_BASE_URL=http://localhost:11434/v1
+LLM_CHAT_MODEL=llama3.2:3b
+LLM_FAST_MODEL=llama3.2:3b
+LLM_EMBEDDING_MODEL=nomic-embed-text
+```
 
 ## Frontend (3 minutes)
 
