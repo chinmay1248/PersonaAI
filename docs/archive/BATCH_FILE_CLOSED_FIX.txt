@@ -1,0 +1,228 @@
+================================================================================
+                   WHY THE BATCH FILE CLOSED QUICKLY
+================================================================================
+
+The batch file closed quickly because there was an error.
+
+Possible reasons:
+  1. Node.js not installed properly
+  2. npm not in your PATH environment variable
+  3. EAS CLI not installed
+  4. Directory path issue
+
+The good news: We can see the error message! Just run it from Command Prompt.
+
+================================================================================
+                        ✅ FIX: RUN FROM COMMAND PROMPT
+================================================================================
+
+This way you'll see the ERROR MESSAGE before it closes!
+
+STEP 1: Open Command Prompt
+  - Press Windows Key + R
+  - Type: cmd
+  - Press Enter
+
+STEP 2: Navigate to PersonaAI
+  - Paste this command (right-click to paste):
+    cd c:\Users\DELL\Desktop\PersonaAI
+  - Press Enter
+
+STEP 3: Run the build batch file
+  - Type this command:
+    BUILD_APK.bat
+  - Press Enter
+
+STEP 4: Watch for errors!
+  - You'll see step-by-step output
+  - Any errors will be shown
+  - The window will STAY OPEN
+
+This way you can read the error and fix it!
+
+================================================================================
+                         WHAT THE ERROR LIKELY IS
+================================================================================
+
+Most Common: "node/npm command not found"
+  REASON: Node.js PATH not set up correctly after installation
+  SOLUTION: 
+    - Reinstall Node.js from https://nodejs.org/
+    - Install the LTS version (not latest)
+    - During install, check "Add to PATH"
+    - Restart your computer
+    - Try again
+
+Second Common: "eas command not found"
+  REASON: EAS CLI not installed globally
+  SOLUTION:
+    - Open Command Prompt
+    - Type: npm install -g eas-cli
+    - Wait for it to finish
+    - Try building again
+
+Third Common: "npm install" fails
+  REASON: Cache corruption or network issue
+  SOLUTION:
+    - In Command Prompt, type: npm cache clean --force
+    - Wait for completion
+    - Type: npm install
+    - Try again
+
+================================================================================
+                    🚀 QUICK FIX COMMAND
+================================================================================
+
+Open Command Prompt and paste this entire command:
+
+cd c:\Users\DELL\Desktop\PersonaAI\personaai-app && npm cache clean --force && npm install && eas build --platform android --profile preview
+
+Press Enter and wait.
+
+This does everything in one go:
+  1. Navigate to app directory
+  2. Clean npm cache
+  3. Install dependencies
+  4. Build APK
+
+================================================================================
+                      ⚙️ STEP BY STEP FIX
+================================================================================
+
+If the quick fix doesn't work, try step by step:
+
+1. Open Command Prompt (Windows Key + R → cmd → Enter)
+
+2. Check if Node.js is installed:
+   node --version
+   
+   If error, install from https://nodejs.org/
+
+3. Check if npm is installed:
+   npm --version
+   
+   If error, reinstall Node.js
+
+4. Install EAS CLI globally:
+   npm install -g eas-cli
+   
+   Wait for "added X packages" message
+
+5. Navigate to app:
+   cd c:\Users\DELL\Desktop\PersonaAI\personaai-app
+
+6. Clean npm cache:
+   npm cache clean --force
+
+7. Install dependencies:
+   npm install
+   
+   Wait 3-5 minutes
+
+8. Build APK:
+   eas build --platform android --profile preview
+   
+   Wait 5-15 minutes for "Build successful"
+
+9. Copy the download link from the output
+
+================================================================================
+                      📝 DEBUGGING CHECKLIST
+================================================================================
+
+Run these commands to check what's working:
+
+[ ] node --version
+    Expected: v24.14.1 (or similar)
+    If error: Install Node.js from https://nodejs.org/
+
+[ ] npm --version
+    Expected: 10.x.x (or similar)
+    If error: npm came with Node.js, reinstall Node.js
+
+[ ] eas --version
+    Expected: EAS CLI 13.x.x (or similar)
+    If error: Run: npm install -g eas-cli
+
+[ ] cd c:\Users\DELL\Desktop\PersonaAI\personaai-app
+    Then: dir
+    Expected: You see package.json, .env, eas.json, etc.
+    If error: Wrong directory
+
+[ ] type .env
+    Expected: You see EXPO_PUBLIC_API_URL=https://personaai-backend...
+    If error: .env file missing (recreate it)
+
+If all above work, then try:
+[ ] npm install
+    Wait 3-5 minutes
+    Expected: "added X packages"
+
+[ ] eas build --platform android --profile preview
+    Wait 5-15 minutes
+    Expected: "Build succeeded!" with download link
+
+================================================================================
+                        🎯 I RECOMMEND
+================================================================================
+
+1. Open Command Prompt (Windows Key + R → cmd → Enter)
+
+2. Paste this command (right-click to paste):
+   cd c:\Users\DELL\Desktop\PersonaAI\personaai-app && node --version && npm --version
+
+3. Press Enter
+
+4. Tell me what you see!
+   - Does node --version work?
+   - Does npm --version work?
+   - If not, what error?
+
+Once I know what's failing, I can give you exact fix!
+
+================================================================================
+                     🔧 CREATED NEW HELPER SCRIPT
+================================================================================
+
+I created a new file: BUILD_APK_DEBUG.bat
+
+This is like the old one but with more error checking.
+
+Run it with:
+  cd c:\Users\DELL\Desktop\PersonaAI && BUILD_APK_DEBUG.bat
+
+It will show you exactly where it fails!
+
+================================================================================
+                        💡 BEST APPROACH
+================================================================================
+
+1. Open Command Prompt
+
+2. Run this to check everything:
+   cd c:\Users\DELL\Desktop\PersonaAI\personaai-app
+   node --version
+   npm --version
+   eas --version
+
+3. Tell me which commands work and which fail
+
+4. I'll give you exact fix for what's broken
+
+Then once all three work, run:
+   eas build --platform android --profile preview
+
+And you'll get your APK!
+
+================================================================================
+                          NEXT STEP
+================================================================================
+
+Option 1: Run the quick command above
+Option 2: Run BUILD_APK_DEBUG.bat from Command Prompt
+Option 3: Tell me which of the 3 commands failed and I'll help
+
+What error did you see in the terminal before it closed?
+Can you try again and tell me what it says?
+
+================================================================================
