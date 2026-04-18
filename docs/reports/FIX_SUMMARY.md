@@ -101,7 +101,7 @@ Your repository had **18 deployment issues** that prevented it from running. The
 - ✅ `personaai-app/.env.example` - Created
 
 ### Root
-- ✅ `DEPLOYMENT.md` - Complete deployment guide
+- ✅ `docs/guides/DEPLOYMENT.md` - Complete deployment guide
 
 ---
 
@@ -189,6 +189,6 @@ npm start
 
 ## Need Help?
 
-Refer to `DEPLOYMENT.md` for detailed deployment instructions, environment variable documentation, and troubleshooting tips.
+Refer to `docs/guides/DEPLOYMENT.md` for detailed deployment instructions, environment variable documentation, and troubleshooting tips.
 
 **All 4 critical issues and most warnings have been fixed. Your app should now deploy successfully!** 🎉
