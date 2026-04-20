@@ -3,6 +3,21 @@
 ## Overview
 This document provides step-by-step instructions to deploy PersonaAI, including both the backend (Python/FastAPI) and frontend (React Native/Expo).
 
+## Recommended Path For Ollama
+
+If your goal is a real production app backed by open-source local models, use [OLLAMA_PRODUCTION.md](OLLAMA_PRODUCTION.md).
+
+That guide covers the self-hosted stack where:
+
+- the backend
+- Ollama
+- PostgreSQL
+- Redis
+- the worker
+- HTTPS
+
+all run together on the same VPS.
+
 ## Critical Fixes Applied
 ✅ Added GET endpoint for chat configs (was breaking the chat config UI)  
 ✅ Fixed hardcoded JWT and encryption secrets (security vulnerability)  

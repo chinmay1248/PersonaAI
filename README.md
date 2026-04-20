@@ -30,7 +30,8 @@ The repo root is now organized so a first-time reader can tell where to start:
 
 1. Read [docs/README.md](docs/README.md) for the documentation map.
 2. Use [docs/guides/QUICK_START.md](docs/guides/QUICK_START.md) if you want the fastest local setup.
-3. Use [docs/guides/DEPLOYMENT.md](docs/guides/DEPLOYMENT.md) if you want deployment instructions.
+3. Use [docs/guides/OLLAMA_PRODUCTION.md](docs/guides/OLLAMA_PRODUCTION.md) if you want a self-hosted Ollama production setup.
+4. Use [docs/guides/DEPLOYMENT.md](docs/guides/DEPLOYMENT.md) for the broader deployment reference.
 
 ## Local Development
 
@@ -50,6 +51,18 @@ ollama pull nomic-embed-text
 ```
 
 Then set `ENABLE_LLM=true` and `LLM_PROVIDER=ollama` in `personaai-backend/.env`.
+
+For hosted free-tier testing, you can also use Gemini through the OpenAI-compatible endpoint from Google AI Studio:
+
+```env
+ENABLE_LLM=true
+LLM_PROVIDER=gemini
+GEMINI_API_KEY=your-key-here
+LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
+LLM_CHAT_MODEL=gemini-2.5-flash
+LLM_FAST_MODEL=gemini-2.5-flash-lite
+LLM_EMBEDDING_MODEL=gemini-embedding-001
+```
 
 ### App
 
@@ -111,5 +124,6 @@ PersonaAI/
 
 - [Documentation index](docs/README.md)
 - [Quick start](docs/guides/QUICK_START.md)
+- [Ollama production guide](docs/guides/OLLAMA_PRODUCTION.md)
 - [Deployment guide](docs/guides/DEPLOYMENT.md)
 - [Phone setup guide](docs/guides/PHONE_SETUP_GUIDE.md)
