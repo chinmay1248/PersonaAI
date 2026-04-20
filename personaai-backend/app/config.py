@@ -28,7 +28,10 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = Field(default=60, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
     refresh_token_expire_days: int = Field(default=30, alias="REFRESH_TOKEN_EXPIRE_DAYS")
     llm_provider: str = Field(default="ollama", validation_alias=AliasChoices("LLM_PROVIDER"))
-    llm_api_key: str | None = Field(default=None, validation_alias=AliasChoices("LLM_API_KEY", "OPENAI_API_KEY"))
+    llm_api_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("LLM_API_KEY", "GEMINI_API_KEY", "OPENAI_API_KEY"),
+    )
     enable_llm: bool = Field(default=False, validation_alias=AliasChoices("ENABLE_LLM", "ENABLE_OPENAI"))
     llm_base_url: str | None = Field(default=None, validation_alias=AliasChoices("LLM_BASE_URL"))
     llm_chat_model: str | None = Field(default=None, validation_alias=AliasChoices("LLM_CHAT_MODEL"))
@@ -48,7 +51,7 @@ class Settings(BaseSettings):
     def llm_enabled(self) -> bool:
         if not self.enable_llm:
             return False
-        if self.normalized_llm_provider == "openai":
+        if self.normalized_llm_provider in {"openai", "gemini"}:
             return bool(self.llm_api_key)
         return True
 
@@ -58,12 +61,16 @@ class Settings(BaseSettings):
             return self.llm_base_url.rstrip("/")
         if self.normalized_llm_provider == "ollama":
             return "http://localhost:11434/v1"
+        if self.normalized_llm_provider == "gemini":
+            return "https://generativelanguage.googleapis.com/v1beta/openai"
         return None
 
     @property
     def resolved_chat_model(self) -> str:
         if self.llm_chat_model:
             return self.llm_chat_model
+        if self.normalized_llm_provider == "gemini":
+            return "gemini-2.5-flash"
         if self.normalized_llm_provider == "openai":
             return "gpt-4o"
         return "llama3.2:3b"
@@ -72,6 +79,8 @@ class Settings(BaseSettings):
     def resolved_fast_model(self) -> str:
         if self.llm_fast_model:
             return self.llm_fast_model
+        if self.normalized_llm_provider == "gemini":
+            return "gemini-2.5-flash-lite"
         if self.normalized_llm_provider == "openai":
             return "gpt-4o-mini"
         return self.resolved_chat_model
@@ -80,6 +89,8 @@ class Settings(BaseSettings):
     def resolved_embedding_model(self) -> str:
         if self.llm_embedding_model:
             return self.llm_embedding_model
+        if self.normalized_llm_provider == "gemini":
+            return "gemini-embedding-001"
         if self.normalized_llm_provider == "openai":
             return "text-embedding-3-small"
         return "nomic-embed-text"

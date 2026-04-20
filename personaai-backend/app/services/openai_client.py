@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 def create_client() -> OpenAI:
     if not settings.llm_enabled:
         raise ValueError("LLM provider is disabled")
-    if settings.normalized_llm_provider == "openai" and not settings.llm_api_key:
+    if settings.normalized_llm_provider in {"openai", "gemini"} and not settings.llm_api_key:
         raise ValueError("LLM API key is missing")
 
     client_kwargs: dict[str, Any] = {"api_key": settings.llm_api_key or "ollama"}
