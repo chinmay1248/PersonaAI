@@ -58,9 +58,14 @@ class AIEngineService:
         reply_texts = []
         if settings.llm_enabled:
             try:
+                reply_length_rule = (
+                    "Each reply must be short and natural, no more than 25 words. "
+                    "Keep the JSON compact."
+                )
                 system_prompt = (
                     f"{prompt['system']} You must provide exactly {payload.count} varied reply options formatted ONLY as a valid JSON array of strings. "
-                    "Do not include markdown formatting. Return JSON like: {\"replies\": [\"reply 1\", \"reply 2\"]}"
+                    f"{reply_length_rule} Do not include markdown formatting. "
+                    "Return JSON like: {\"replies\": [\"reply 1\", \"reply 2\"]}"
                 )
                 response = create_chat_completion(
                     model=settings.resolved_chat_model,
@@ -68,7 +73,7 @@ class AIEngineService:
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": prompt['user']},
                     ],
-                    max_tokens=600,
+                    max_tokens=1000 if settings.normalized_llm_provider == "gemini" else 600,
                     temperature=0.8,
                     response_format={"type": "json_object"},
                 )

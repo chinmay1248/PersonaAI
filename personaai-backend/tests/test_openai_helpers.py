@@ -26,3 +26,23 @@ def test_create_chat_completion_returns_none_when_disabled() -> None:
         temperature=0.0,
     )
     assert result is None
+
+
+def test_gemini_provider_defaults_are_resolved() -> None:
+    settings = get_settings().model_copy(
+        update={
+            "llm_provider": "gemini",
+            "llm_api_key": "test-key",
+            "enable_llm": True,
+            "llm_base_url": None,
+            "llm_chat_model": None,
+            "llm_fast_model": None,
+            "llm_embedding_model": None,
+        }
+    )
+
+    assert settings.llm_enabled is True
+    assert settings.resolved_llm_base_url == "https://generativelanguage.googleapis.com/v1beta/openai"
+    assert settings.resolved_chat_model == "gemini-2.5-flash"
+    assert settings.resolved_fast_model == "gemini-2.5-flash-lite"
+    assert settings.resolved_embedding_model == "gemini-embedding-001"
