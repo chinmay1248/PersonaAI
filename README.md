@@ -116,7 +116,7 @@ PersonaAI/
 
 - `personaai-backend/app/routers/`: API endpoints
 - `personaai-backend/app/services/`: business logic and AI orchestration
-- `personaai-backend/app/models/`: SQLAlchemy models
+- `personaai-backend/app/models/`: SQLAlchemy  models
 - `personaai-backend/app/schemas/`: request and response schemas
 - `personaai-backend/tests/`: backend test suite
 
