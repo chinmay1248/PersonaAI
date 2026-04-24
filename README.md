@@ -107,7 +107,7 @@ PersonaAI/
 
 ### Frontend
 
-- `personaai-app/app/`: Expo Router screens for auth, onboarding, and the main app flow
+- `personaai-app/app/`: Expo Router  screens  for  auth,  onboarding,  and  the  main  app  flow
 - `personaai-app/components/`: reusable UI building blocks
 - `personaai-app/services/`: API calls, training, storage, WhatsApp integration
 - `personaai-app/android/`: native Android bridge and accessibility code
