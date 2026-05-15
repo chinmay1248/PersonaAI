@@ -5,9 +5,10 @@ This folder is the main documentation entry point for the repo.
 ## Recommended Reading Order
 
 1. [guides/QUICK_START.md](guides/QUICK_START.md) for local setup.
-2. [guides/OLLAMA_PRODUCTION.md](guides/OLLAMA_PRODUCTION.md) for the self-hosted production path with Ollama.
-3. [guides/DEPLOYMENT.md](guides/DEPLOYMENT.md) for the broader backend and mobile deployment reference.
-4. [guides/PHONE_SETUP_GUIDE.md](guides/PHONE_SETUP_GUIDE.md) if you want the Android and WhatsApp flow.
+2. [../personaai-extension/README.md](../personaai-extension/README.md) for loading the browser extension.
+3. [guides/OLLAMA_PRODUCTION.md](guides/OLLAMA_PRODUCTION.md) for the self-hosted production path with Ollama.
+4. [guides/DEPLOYMENT.md](guides/DEPLOYMENT.md) for the broader backend and mobile deployment reference.
+5. [guides/PHONE_SETUP_GUIDE.md](guides/PHONE_SETUP_GUIDE.md) if you want the older Android and WhatsApp flow.
 
 ## Folder Guide
 
@@ -16,6 +17,7 @@ This folder is the main documentation entry point for the repo.
 Task-focused documents you can act on right away.
 
 - [QUICK_START.md](guides/QUICK_START.md)
+- [Browser extension setup](../personaai-extension/README.md)
 - [OLLAMA_PRODUCTION.md](guides/OLLAMA_PRODUCTION.md)
 - [DEPLOYMENT.md](guides/DEPLOYMENT.md)
 - [DEPLOYMENT_INSTRUCTIONS.md](guides/DEPLOYMENT_INSTRUCTIONS.md)
