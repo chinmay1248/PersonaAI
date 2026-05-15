@@ -14,10 +14,11 @@
 
 ## What This Repo Contains
 
-PersonaAI is split into two main products:
+PersonaAI is now shifting from an APK-first product to a browser extension-first product:
 
-- `personaai-app/`: Expo + React Native mobile app, including the Android WhatsApp integration layer.
+- `personaai-extension/`: Chrome/Edge Manifest V3 extension for WhatsApp Web and Telegram Web.
 - `personaai-backend/`: FastAPI backend for auth, reply generation, summarization, tone learning, and feedback.
+- `personaai-app/`: Expo + React Native mobile app, including the older Android WhatsApp integration layer kept for reference.
 
 The repo root is now organized so a first-time reader can tell where to start:
 
@@ -30,8 +31,9 @@ The repo root is now organized so a first-time reader can tell where to start:
 
 1. Read [docs/README.md](docs/README.md) for the documentation map.
 2. Use [docs/guides/QUICK_START.md](docs/guides/QUICK_START.md) if you want the fastest local setup.
-3. Use [docs/guides/OLLAMA_PRODUCTION.md](docs/guides/OLLAMA_PRODUCTION.md) if you want a self-hosted Ollama production setup.
-4. Use [docs/guides/DEPLOYMENT.md](docs/guides/DEPLOYMENT.md) for the broader deployment reference.
+3. Use [personaai-extension/README.md](personaai-extension/README.md) to load the browser extension locally.
+4. Use [docs/guides/OLLAMA_PRODUCTION.md](docs/guides/OLLAMA_PRODUCTION.md) if you want a self-hosted Ollama production setup.
+5. Use [docs/guides/DEPLOYMENT.md](docs/guides/DEPLOYMENT.md) for the broader deployment reference.
 
 ## Local Development
 
@@ -64,7 +66,17 @@ LLM_FAST_MODEL=gemini-2.5-flash-lite
 LLM_EMBEDDING_MODEL=gemini-embedding-001
 ```
 
-### App
+### Browser Extension
+
+1. Open `chrome://extensions` in Chrome or Edge.
+2. Enable Developer mode.
+3. Choose Load unpacked.
+4. Select `personaai-extension/`.
+5. Open the popup and set the Backend URL to `http://localhost:8000/v1` for local development.
+
+See [personaai-extension/README.md](personaai-extension/README.md) for extension-specific details.
+
+### Mobile App Legacy
 
 ```bash
 cd personaai-app
@@ -90,8 +102,9 @@ Password: StrongPass123
 
 ```text
 PersonaAI/
-|-- personaai-app/        Expo app, UI, services, Android native module
+|-- personaai-extension/  Browser extension for WhatsApp Web and Telegram Web
 |-- personaai-backend/    FastAPI app, models, routers, services, tests
+|-- personaai-app/        Expo app, UI, services, Android native module
 |-- docs/
 |   |-- guides/           Setup, deployment, build, phone usage
 |   |-- reports/          Reviews, status summaries, testing notes
@@ -103,9 +116,16 @@ PersonaAI/
 `-- assets/               Images used in documentation
 ```
 
-## Important App Areas
+## Important Areas
 
-### Frontend
+### Browser Extension
+
+- `personaai-extension/manifest.json`: Manifest V3 permissions, background worker, popup, and content script entries
+- `personaai-extension/background/`: API calls, auth token refresh, chat config creation, and extension message routing
+- `personaai-extension/content/`: WhatsApp Web and Telegram Web chat extraction, floating assistant, and reply insertion
+- `personaai-extension/popup/`: login, settings, and active-chat actions
+
+### Mobile Frontend Legacy
 
 - `personaai-app/app/`: Expo Router  screens  for  auth,  onboarding,  and  the  main  app  flow
 - `personaai-app/components/`: reusable UI building blocks
@@ -124,6 +144,7 @@ PersonaAI/
 
 - [Documentation index](docs/README.md)
 - [Quick start](docs/guides/QUICK_START.md)
+- [Browser extension setup](personaai-extension/README.md)
 - [Ollama production guide](docs/guides/OLLAMA_PRODUCTION.md)
 - [Deployment guide](docs/guides/DEPLOYMENT.md)
 - [Phone setup guide](docs/guides/PHONE_SETUP_GUIDE.md)
