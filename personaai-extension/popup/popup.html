@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PersonaAI</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="popup-shell">
+      <header class="popup-header">
+        <img src="../icons/icon48.png" alt="" width="36" height="36">
+        <div>
+          <h1>PersonaAI</h1>
+          <p id="statusText">Loading...</p>
+        </div>
+      </header>
+
+      <section class="panel" id="authPanel">
+        <form id="authForm">
+          <label>
+            Email
+            <input id="emailInput" type="email" autocomplete="email" required value="demo@persona.ai">
+          </label>
+          <label>
+            Password
+            <input id="passwordInput" type="password" autocomplete="current-password" required value="StrongPass123">
+          </label>
+          <div class="button-row">
+            <button class="button primary" type="submit" data-auth-mode="login">Sign in</button>
+            <button class="button" type="button" id="registerButton">Register</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel is-hidden" id="actionPanel">
+        <div class="action-grid">
+          <button class="button primary" type="button" id="replyButton">Generate replies</button>
