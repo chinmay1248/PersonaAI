@@ -36,3 +36,41 @@
       <section class="panel is-hidden" id="actionPanel">
         <div class="action-grid">
           <button class="button primary" type="button" id="replyButton">Generate replies</button>
+          <button class="button" type="button" id="summaryButton">Summarize</button>
+          <button class="button" type="button" id="trainButton">Train tone</button>
+          <button class="button muted" type="button" id="logoutButton">Sign out</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <details>
+          <summary>Settings</summary>
+          <form id="settingsForm" class="settings-form">
+            <label>
+              Backend URL
+              <input id="apiBaseUrlInput" type="url" required>
+            </label>
+            <label>
+              Replies
+              <input id="suggestionCountInput" type="number" min="1" max="5" step="1">
+            </label>
+            <label>
+              Personality
+              <select id="personalityInput">
+                <option value="funny">Funny</option>
+                <option value="serious">Serious</option>
+                <option value="romantic">Romantic</option>
+                <option value="savage">Savage</option>
+              </select>
+            </label>
+            <button class="button" type="submit">Save settings</button>
+          </form>
+        </details>
+      </section>
+
+      <section class="results" id="results" aria-live="polite"></section>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
