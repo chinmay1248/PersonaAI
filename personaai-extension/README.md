@@ -25,3 +25,29 @@ PersonaAI is moving from an Android APK-first experience to a browser extension 
 3. Enable Developer mode.
 4. Choose Load unpacked.
 5. Select `personaai-extension/`.
+6. Open the extension popup, set Backend URL to `http://localhost:8000/v1`, and sign in.
+
+Demo login:
+
+```text
+Email: demo@persona.ai
+Password: StrongPass123
+```
+
+## Production Backend
+
+The default backend URL is:
+
+```text
+https://personaai-backend-production-4490.up.railway.app/v1
+```
+
+Change it in the popup settings when testing a local or staging backend.
+
+## Migration Notes
+
+- The Expo app and Android native module remain in `personaai-app/` for reference.
+- Browser chat access now happens through `content/content.js` instead of Android accessibility services.
+- Auth tokens and extension settings are stored in `chrome.storage.local`.
+- Cross-origin backend access is declared in `manifest.json` host permissions.
+- DOM selectors are intentionally defensive because WhatsApp Web and Telegram Web update their markup often.
