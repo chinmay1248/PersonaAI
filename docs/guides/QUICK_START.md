@@ -44,7 +44,25 @@ LLM_FAST_MODEL=llama3.2:3b
 LLM_EMBEDDING_MODEL=nomic-embed-text
 ```
 
-## Frontend (3 minutes)
+## Browser Extension (3 minutes)
+
+1. Open `chrome://extensions` in Chrome or Edge.
+2. Enable Developer mode.
+3. Choose Load unpacked.
+4. Select the repo's `personaai-extension/` folder.
+5. Open the PersonaAI popup and set Backend URL to `http://localhost:8000/v1`.
+6. Sign in with the demo account or register a new account.
+
+Demo login:
+
+```text
+Email: demo@persona.ai
+Password: StrongPass123
+```
+
+Open WhatsApp Web or Telegram Web, select a chat, then use either the page overlay or the extension popup.
+
+## Mobile App Legacy (3 minutes)
 
 ```bash
 # 1. Navigate to frontend
