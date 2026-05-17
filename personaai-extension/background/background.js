@@ -176,3 +176,47 @@ async function trainFromContext(context) {
 
   if (!ownMessages.length) {
     throw new Error("No outgoing messages found to train from.");
+  }
+
+  return apiFetch("/tone/train-from-messages", {
+    method: "POST",
+    body: { source, messages: ownMessages }
+  });
+}
+
+async function ensureChatConfig(context, settings) {
+  const chatLabel = sanitizeLabel(context.chatTitle || context.platformLabel || "Browser Chat");
+  const chatType = context.platform || "browser";
+  const configs = await apiFetch("/chats/config");
+  const existing = configs.find((config) => (
+    config.chat_label.toLowerCase() === chatLabel.toLowerCase()
+    && (config.chat_type || "browser") === chatType
+  ));
+
+  if (existing) {
+    return existing;
+  }
+
+  return apiFetch("/chats/config", {
+    method: "POST",
+    body: {
+      chat_label: chatLabel,
+      chat_type: chatType,
+      personality_mode: settings.personalityMode || null,
+      auto_reply_mode: "OFF",
+      ai_enabled: true,
+      is_private: false
+    }
+  });
+}
+
+async function getActiveContext() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id || !isSupportedUrl(tab.url)) {
+    throw new Error("Open WhatsApp Web or Telegram Web, then try again.");
+  }
+
+  const response = await chrome.tabs.sendMessage(tab.id, { type: "EXTRACT_CONTEXT" });
+  if (!response?.ok) {
+    throw new Error(response?.error || "Could not read the active chat.");
+  }
