@@ -310,3 +310,47 @@ function assertUsableContext(context) {
 function normalizeMessages(messages) {
   return messages
     .filter((message) => message?.text && message.text.trim().length > 0)
+    .map((message) => ({
+      role: message.role === "self" ? "self" : "contact",
+      text: message.text.trim().replace(/\s+/g, " ")
+    }));
+}
+
+function sanitizeLabel(label) {
+  return String(label).replace(/\s+/g, " ").trim().slice(0, 100) || "Browser Chat";
+}
+
+function normalizeBaseUrl(url) {
+  return String(url || DEFAULT_API_BASE_URL).trim().replace(/\/+$/, "");
+}
+
+function clamp(value, min, max) {
+  if (Number.isNaN(value)) {
+    return min;
+  }
+  return Math.min(Math.max(value, min), max);
+}
+
+function isSupportedUrl(url = "") {
+  try {
+    return SUPPORTED_HOSTS.has(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
+function normalizeError(error) {
+  return error?.message || "Something went wrong.";
+}
+
+function storageGet(keys) {
+  return chrome.storage.local.get(keys);
+}
+
+function storageSet(values) {
+  return chrome.storage.local.set(values);
+}
+
+function storageRemove(keys) {
+  return chrome.storage.local.remove(keys);
+}
