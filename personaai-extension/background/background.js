@@ -87,3 +87,48 @@ async function login(credentials) {
     method: "POST",
     body: credentials
   }, { auth: false });
+
+  await persistAuth(response);
+  return getPublicState();
+}
+
+async function register(credentials) {
+  const response = await apiFetch("/auth/register", {
+    method: "POST",
+    body: credentials
+  }, { auth: false });
+
+  await persistAuth(response);
+  return getPublicState();
+}
+
+async function logout() {
+  await storageRemove(["accessToken", "refreshToken", "userId"]);
+  return getPublicState();
+}
+
+async function persistAuth(response) {
+  await storageSet({
+    accessToken: response.access_token,
+    refreshToken: response.refresh_token,
+    userId: response.user_id
+  });
+}
+
+async function generateForActiveTab(options) {
+  const context = await getActiveContext();
+  return generateFromContext(context, options);
+}
+
+async function summarizeActiveTab() {
+  const context = await getActiveContext();
+  return summarizeContext(context);
+}
+
+async function trainFromActiveTab() {
+  const context = await getActiveContext();
+  return trainFromContext(context);
+}
+
+async function generateFromContext(context, options = {}) {
+  assertUsableContext(context);
