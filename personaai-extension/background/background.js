@@ -220,3 +220,48 @@ async function getActiveContext() {
   if (!response?.ok) {
     throw new Error(response?.error || "Could not read the active chat.");
   }
+
+  return response.context;
+}
+
+async function insertInActiveTab(text) {
+  if (!text.trim()) {
+    throw new Error("No reply text to insert.");
+  }
+
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id || !isSupportedUrl(tab.url)) {
+    throw new Error("Open WhatsApp Web or Telegram Web, then try again.");
+  }
+
+  const response = await chrome.tabs.sendMessage(tab.id, { type: "INSERT_TEXT", text });
+  if (!response?.ok) {
+    throw new Error(response?.error || "Could not insert the reply.");
+  }
+
+  return { inserted: true };
+}
+
+async function apiFetch(path, options = {}, fetchOptions = {}) {
+  const settings = await getSettings();
+  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+  const auth = fetchOptions.auth !== false;
+
+  if (auth) {
+    const { accessToken } = await storageGet(["accessToken"]);
+    if (!accessToken) {
+      throw new Error("Sign in to PersonaAI first.");
+    }
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+
+  const response = await fetch(`${settings.apiBaseUrl}${path}`, {
+    method: options.method || "GET",
+    headers,
+    body: options.body ? JSON.stringify(options.body) : undefined
+  });
+
+  if (response.status === 401 && auth && fetchOptions.retry !== false) {
+    await refreshAccessToken();
+    return apiFetch(path, options, { ...fetchOptions, retry: false });
+  }
