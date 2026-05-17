@@ -43,3 +43,47 @@ async function handleMessage(message, sender) {
     case "TRAIN_FROM_ACTIVE_TAB":
       return { result: await trainFromActiveTab() };
     case "INSERT_IN_ACTIVE_TAB":
+      return insertInActiveTab(message.text || "");
+    case "CONTENT_GENERATE_REPLY":
+      return { result: await generateFromContext(message.context, message.options || {}) };
+    case "CONTENT_SUMMARIZE":
+      return { result: await summarizeContext(message.context) };
+    case "CONTENT_TRAIN":
+      return { result: await trainFromContext(message.context) };
+    default:
+      throw new Error("Unknown PersonaAI action.");
+  }
+}
+
+async function getPublicState() {
+  const { personaAISettings, accessToken, userId } = await storageGet([
+    "personaAISettings",
+    "accessToken",
+    "userId"
+  ]);
+
+  return {
+    settings: { ...DEFAULT_SETTINGS, ...(personaAISettings || {}) },
+    authenticated: Boolean(accessToken),
+    userId: userId || null
+  };
+}
+
+async function saveSettings(nextSettings) {
+  const current = await getSettings();
+  const settings = {
+    ...current,
+    ...nextSettings,
+    apiBaseUrl: normalizeBaseUrl(nextSettings.apiBaseUrl || current.apiBaseUrl),
+    suggestionCount: clamp(Number(nextSettings.suggestionCount || current.suggestionCount), 1, 5)
+  };
+
+  await storageSet({ personaAISettings: settings });
+  return { settings };
+}
+
+async function login(credentials) {
+  const response = await apiFetch("/auth/login", {
+    method: "POST",
+    body: credentials
+  }, { auth: false });
