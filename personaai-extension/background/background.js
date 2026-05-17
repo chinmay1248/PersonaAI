@@ -132,3 +132,47 @@ async function trainFromActiveTab() {
 
 async function generateFromContext(context, options = {}) {
   assertUsableContext(context);
+  const settings = await getSettings();
+  const chatConfig = await ensureChatConfig(context, settings);
+  const messages = normalizeMessages(context.messages);
+  const incomingMessages = messages.filter((message) => message.role !== "self").slice(-5);
+  const fallbackIncoming = messages.slice(-3);
+  const conversationHistory = messages.slice(-18).map((message) => ({
+    role: message.role === "self" ? "user" : "contact",
+    text: message.text
+  }));
+
+  return apiFetch("/ai/generate-reply", {
+    method: "POST",
+    body: {
+      chat_config_id: chatConfig.id,
+      incoming_messages: (incomingMessages.length ? incomingMessages : fallbackIncoming).map((message) => message.text),
+      conversation_history: conversationHistory,
+      count: clamp(Number(options.count || settings.suggestionCount), 1, 5)
+    }
+  });
+}
+
+async function summarizeContext(context) {
+  assertUsableContext(context);
+  const messages = normalizeMessages(context.messages).map((message) => message.text).slice(-40);
+  if (!messages.length) {
+    throw new Error("No visible chat messages found to summarize.");
+  }
+
+  return apiFetch("/ai/summarize", {
+    method: "POST",
+    body: { messages }
+  });
+}
+
+async function trainFromContext(context) {
+  assertUsableContext(context);
+  const source = context.platform === "telegram" ? "telegram" : "whatsapp";
+  const ownMessages = normalizeMessages(context.messages)
+    .filter((message) => message.role === "self")
+    .map((message) => message.text)
+    .slice(-50);
+
+  if (!ownMessages.length) {
+    throw new Error("No outgoing messages found to train from.");
