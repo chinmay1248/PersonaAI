@@ -265,3 +265,48 @@ async function apiFetch(path, options = {}, fetchOptions = {}) {
     await refreshAccessToken();
     return apiFetch(path, options, { ...fetchOptions, retry: false });
   }
+
+  const text = await response.text();
+  const payload = text ? JSON.parse(text) : null;
+  if (!response.ok) {
+    throw new Error(payload?.detail || payload?.message || `PersonaAI API error ${response.status}`);
+  }
+
+  return payload;
+}
+
+async function refreshAccessToken() {
+  const { refreshToken } = await storageGet(["refreshToken"]);
+  if (!refreshToken) {
+    throw new Error("Your session expired. Sign in again.");
+  }
+
+  const response = await apiFetch("/auth/refresh", {
+    method: "POST",
+    body: { refresh_token: refreshToken }
+  }, { auth: false });
+
+  await storageSet({ accessToken: response.access_token });
+}
+
+async function getSettings() {
+  const { personaAISettings } = await storageGet(["personaAISettings"]);
+  return {
+    ...DEFAULT_SETTINGS,
+    ...(personaAISettings || {}),
+    apiBaseUrl: normalizeBaseUrl(personaAISettings?.apiBaseUrl || DEFAULT_API_BASE_URL)
+  };
+}
+
+function assertUsableContext(context) {
+  if (!context || !Array.isArray(context.messages)) {
+    throw new Error("Could not read this chat.");
+  }
+  if (!context.messages.length) {
+    throw new Error("No visible messages found in this chat.");
+  }
+}
+
+function normalizeMessages(messages) {
+  return messages
+    .filter((message) => message?.text && message.text.trim().length > 0)
