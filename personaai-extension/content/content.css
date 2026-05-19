@@ -114,3 +114,61 @@
 .personaai-button.ghost {
   background: #ffffff;
 }
+
+.personaai-button.small {
+  min-height: 30px;
+  padding: 0 12px;
+  color: #ffffff;
+  background: #c96c50;
+  border-color: #c96c50;
+}
+
+.personaai-status {
+  color: #5e6a72;
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.personaai-results {
+  display: grid;
+  gap: 8px;
+}
+
+.personaai-result {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #e4d9cc;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.personaai-result p,
+.personaai-result li,
+.personaai-empty {
+  margin: 0;
+  color: #23313a;
+  font-size: 13px;
+  line-height: 18px;
+  white-space: normal;
+}
+
+.personaai-result h3 {
+  margin: 0;
+  color: #172026;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.personaai-result ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+@media (max-width: 520px) {
+  .personaai-widget {
+    right: 10px;
+    bottom: 10px;
+    width: calc(100vw - 20px);
+  }
+}
