@@ -154,3 +154,42 @@
     state.resultNode.innerHTML = `
       <article class="personaai-result">
         <h3>Tone updated</h3>
+        <p>Profile accuracy: ${score}%</p>
+      </article>
+    `;
+  }
+
+  function extractContext() {
+    const platform = getPlatform();
+    const extractor = platform === "telegram" ? extractTelegram : extractWhatsApp;
+    const context = extractor();
+    return {
+      platform,
+      platformLabel: platform === "telegram" ? "Telegram Web" : "WhatsApp Web",
+      url: location.href,
+      chatTitle: context.chatTitle,
+      messages: context.messages.slice(-50)
+    };
+  }
+
+  function extractWhatsApp() {
+    const title = textFromFirst([
+      "header span[title]",
+      "header [data-testid='conversation-info-header-chat-title']",
+      "header [role='button'] span"
+    ]);
+
+    const nodes = [
+      ...document.querySelectorAll("[data-testid='msg-container']"),
+      ...document.querySelectorAll(".message-in, .message-out")
+    ];
+
+    return {
+      chatTitle: title || "WhatsApp chat",
+      messages: normalizeExtractedMessages(nodes.map((node) => ({
+        role: node.closest(".message-out") ? "self" : "contact",
+        text: readMessageText(node, [
+          "span.selectable-text",
+          "[data-pre-plain-text]",
+          "span[dir='ltr']",
+          "span[dir='auto']"
