@@ -193,3 +193,42 @@
           "[data-pre-plain-text]",
           "span[dir='ltr']",
           "span[dir='auto']"
+        ])
+      })))
+    };
+  }
+
+  function extractTelegram() {
+    const title = textFromFirst([
+      ".chat-info .title",
+      ".topbar .peer-title",
+      "[class*='ChatInfo'] [class*='title']",
+      "header h3",
+      "header [dir='auto']"
+    ]);
+    const nodes = [
+      ...document.querySelectorAll(".Message, .message, .bubble, [class*='message-list'] [class*='message']")
+    ];
+
+    return {
+      chatTitle: title || "Telegram chat",
+      messages: normalizeExtractedMessages(nodes.map((node) => ({
+        role: isOutgoingTelegramNode(node) ? "self" : "contact",
+        text: readMessageText(node, [
+          ".text-content",
+          ".message-content",
+          ".TranslatableMessage",
+          "[dir='auto']",
+          "[dir='ltr']"
+        ])
+      })))
+    };
+  }
+
+  function normalizeExtractedMessages(messages) {
+    const seen = new Set();
+    return messages
+      .map((message) => ({
+        role: message.role === "self" ? "self" : "contact",
+        text: cleanText(message.text)
+      }))
