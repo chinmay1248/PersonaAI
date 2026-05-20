@@ -115,3 +115,42 @@
       if (!response?.ok) {
         throw new Error(response?.error || "PersonaAI could not complete that action.");
       }
+
+      render(response.result);
+      setStatus(`Using ${context.chatTitle || context.platformLabel}.`);
+    } catch (error) {
+      setStatus(error.message || "Something went wrong.");
+    }
+  }
+
+  function renderReplies(result) {
+    const suggestions = result?.suggestions || [];
+    if (!suggestions.length) {
+      state.resultNode.innerHTML = `<p class="personaai-empty">No suggestions returned.</p>`;
+      return;
+    }
+
+    state.resultNode.innerHTML = suggestions.map((suggestion) => `
+      <article class="personaai-result">
+        <p>${escapeHtml(suggestion.text)}</p>
+        <button class="personaai-button small" type="button" data-action="insert" data-text="${escapeAttr(suggestion.text)}">Use</button>
+      </article>
+    `).join("");
+  }
+
+  function renderSummary(result) {
+    const items = result?.action_items || [];
+    state.resultNode.innerHTML = `
+      <article class="personaai-result">
+        <h3>Summary</h3>
+        <p>${escapeHtml(result?.summary || "No summary returned.")}</p>
+        ${items.length ? `<h3>Action items</h3><ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : ""}
+      </article>
+    `;
+  }
+
+  function renderTraining(result) {
+    const score = Math.round(Number(result?.accuracy_score || 0) * 100);
+    state.resultNode.innerHTML = `
+      <article class="personaai-result">
+        <h3>Tone updated</h3>
