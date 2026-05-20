@@ -76,3 +76,42 @@
     if (!target) {
       return;
     }
+
+    const action = target.dataset.action;
+    if (action === "toggle") {
+      state.minimized = !state.minimized;
+      state.panel.classList.toggle("is-minimized", state.minimized);
+      target.textContent = state.minimized ? "+" : "-";
+      return;
+    }
+
+    if (action === "insert") {
+      await insertIntoComposer(target.dataset.text || "");
+      setStatus("Inserted into the message box.");
+      return;
+    }
+
+    if (action === "generate") {
+      await runAction("CONTENT_GENERATE_REPLY", renderReplies, "Generating replies...");
+      return;
+    }
+
+    if (action === "summarize") {
+      await runAction("CONTENT_SUMMARIZE", renderSummary, "Summarizing chat...");
+      return;
+    }
+
+    if (action === "train") {
+      await runAction("CONTENT_TRAIN", renderTraining, "Training from your visible outgoing messages...");
+    }
+  }
+
+  async function runAction(type, render, loadingText) {
+    try {
+      setStatus(loadingText);
+      state.resultNode.innerHTML = "";
+      const context = extractContext();
+      const response = await chrome.runtime.sendMessage({ type, context });
+      if (!response?.ok) {
+        throw new Error(response?.error || "PersonaAI could not complete that action.");
+      }
