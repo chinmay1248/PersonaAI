@@ -310,3 +310,41 @@
       const nodes = [...document.querySelectorAll(selector)];
       const node = nodes.reverse().find((candidate) => isVisible(candidate));
       if (node) {
+        return node;
+      }
+    }
+    return null;
+  }
+
+  function isVisible(node) {
+    const rect = node.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  }
+
+  function setStatus(text) {
+    if (state.statusNode) {
+      state.statusNode.textContent = text;
+    }
+  }
+
+  function cleanText(text) {
+    return String(text || "")
+      .replace(/\b\d{1,2}:\d{2}\s?(AM|PM)?\b/gi, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      "\"": "&quot;",
+      "'": "&#39;"
+    }[char]));
+  }
+
+  function escapeAttr(value) {
+    return escapeHtml(value).replace(/`/g, "&#96;");
+  }
+})();
