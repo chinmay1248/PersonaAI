@@ -116,3 +116,61 @@ details[open] summary {
   background: #fff7ed;
   cursor: pointer;
   font-size: 13px;
+  font-weight: 800;
+}
+
+.button.primary {
+  border-color: #0f766e;
+  color: #ffffff;
+  background: #0f766e;
+}
+
+.button.muted {
+  color: #5c6670;
+  background: #ffffff;
+}
+
+.button:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.results {
+  min-height: 86px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.result-item {
+  display: grid;
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid #e3d7c8;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.result-item h2 {
+  margin: 0;
+  color: #172026;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.result-item p,
+.result-item li {
+  color: #26343d;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.result-item ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.empty {
+  color: #66727c;
+  font-size: 13px;
+  line-height: 18px;
+}
