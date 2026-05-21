@@ -271,3 +271,42 @@
       }
     }
     return "";
+  }
+
+  async function insertIntoComposer(text) {
+    const composer = findComposer();
+    if (!composer) {
+      throw new Error("Could not find the message box.");
+    }
+
+    composer.focus();
+    if ("value" in composer) {
+      composer.value = text;
+      composer.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: text }));
+      return;
+    }
+
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(composer);
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.execCommand("insertText", false, text);
+    composer.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: text }));
+  }
+
+  function findComposer() {
+    const selectors = [
+      "footer div[contenteditable='true'][role='textbox']",
+      "footer div[contenteditable='true']",
+      "[contenteditable='true'][role='textbox']",
+      ".input-message-input[contenteditable='true']",
+      "div[contenteditable='true']",
+      "textarea"
+    ];
+
+    for (const selector of selectors) {
+      const nodes = [...document.querySelectorAll(selector)];
+      const node = nodes.reverse().find((candidate) => isVisible(candidate));
+      if (node) {
