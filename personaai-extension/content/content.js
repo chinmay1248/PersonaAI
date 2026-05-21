@@ -232,3 +232,42 @@
         role: message.role === "self" ? "self" : "contact",
         text: cleanText(message.text)
       }))
+      .filter((message) => {
+        const key = `${message.role}:${message.text}`;
+        if (!message.text || seen.has(key)) {
+          return false;
+        }
+        seen.add(key);
+        return true;
+      });
+  }
+
+  function readMessageText(node, selectors) {
+    const parts = selectors.flatMap((selector) => [...node.querySelectorAll(selector)])
+      .map((child) => child.innerText || child.textContent || "")
+      .filter(Boolean);
+
+    return parts.length ? parts.join(" ") : (node.innerText || node.textContent || "");
+  }
+
+  function isOutgoingTelegramNode(node) {
+    const className = String(node.className || "").toLowerCase();
+    return className.includes("own")
+      || className.includes("out")
+      || className.includes("is-sent")
+      || Boolean(node.closest(".own, .outgoing, .is-out, .is-sent"));
+  }
+
+  function getPlatform() {
+    return location.hostname.includes("telegram") ? "telegram" : "whatsapp";
+  }
+
+  function textFromFirst(selectors) {
+    for (const selector of selectors) {
+      const node = document.querySelector(selector);
+      const text = cleanText(node?.innerText || node?.textContent || node?.getAttribute?.("title") || "");
+      if (text) {
+        return text;
+      }
+    }
+    return "";
