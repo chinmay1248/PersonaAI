@@ -57,3 +57,62 @@ p {
   border: 1px solid #dccdb9;
   border-radius: 8px;
   background: #fffdf9;
+}
+
+.is-hidden {
+  display: none;
+}
+
+form,
+.settings-form {
+  display: grid;
+  gap: 10px;
+}
+
+label {
+  display: grid;
+  gap: 5px;
+  color: #52616b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 9px;
+  border: 1px solid #cbbba6;
+  border-radius: 6px;
+  color: #172026;
+  background: #ffffff;
+  font: inherit;
+}
+
+summary {
+  cursor: pointer;
+  color: #172026;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+details[open] summary {
+  margin-bottom: 10px;
+}
+
+.button-row,
+.action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.button {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid #cbbba6;
+  border-radius: 6px;
+  color: #172026;
+  background: #fff7ed;
+  cursor: pointer;
+  font-size: 13px;
