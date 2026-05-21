@@ -78,3 +78,41 @@ function bindEvents() {
       renderInfo("Inserted into the active chat.");
     });
   });
+}
+
+async function submitAuth(type) {
+  await withBusy(async () => {
+    const response = await sendMessage({
+      type,
+      credentials: {
+        email: elements.emailInput.value.trim(),
+        password: elements.passwordInput.value
+      }
+    });
+
+    applyState(response);
+    renderInfo("Signed in. Open a chat and generate replies.");
+  });
+}
+
+async function refreshState() {
+  const state = await sendMessage({ type: "GET_STATE" });
+  applyState(state);
+}
+
+function applyState(state) {
+  elements.authPanel.classList.toggle("is-hidden", state.authenticated);
+  elements.actionPanel.classList.toggle("is-hidden", !state.authenticated);
+  elements.statusText.textContent = state.authenticated ? "Signed in" : "Sign in to start";
+  elements.apiBaseUrlInput.value = state.settings.apiBaseUrl || "";
+  elements.suggestionCountInput.value = state.settings.suggestionCount || 3;
+  elements.personalityInput.value = state.settings.personalityMode || "funny";
+}
+
+async function runAction(type, render, loadingText) {
+  await withBusy(async () => {
+    renderInfo(loadingText);
+    const response = await sendMessage({ type });
+    render(response.result);
+  });
+}
