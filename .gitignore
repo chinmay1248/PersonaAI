@@ -28,6 +28,8 @@ htmlcov/
 .env.local
 .env.*.local
 
+.chrome-personaai-profile/
+
 artifacts/web/
 
 .DS_Store
