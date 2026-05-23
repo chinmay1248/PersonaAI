@@ -16,6 +16,11 @@ class Settings(BaseSettings):
         return self.app_env != "production"
 
     api_prefix: str = "/v1"
+    cors_allowed_origins: str = Field(default="*", alias="CORS_ALLOWED_ORIGINS")
+    cors_allowed_origin_regex: str | None = Field(
+        default=r"chrome-extension://.*",
+        alias="CORS_ALLOWED_ORIGIN_REGEX",
+    )
 
     # Railway automatically injects DATABASE_URL pointing to its PostgreSQL instance.
     # Falls back to local SQLite for development.
@@ -98,6 +103,13 @@ class Settings(BaseSettings):
     @property
     def openai_enabled(self) -> bool:
         return self.llm_enabled
+
+    @property
+    def resolved_cors_allowed_origins(self) -> list[str]:
+        raw_origins = (self.cors_allowed_origins or "*").strip()
+        if raw_origins == "*":
+            return ["*"]
+        return [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
 
 
 @lru_cache
