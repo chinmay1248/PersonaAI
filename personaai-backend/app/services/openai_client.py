@@ -31,8 +31,8 @@ def _extract_json_candidate(content: str) -> str:
     return candidate.strip()
 
 
-def parse_json_response(content: Any) -> dict[str, Any] | None:
-    if isinstance(content, dict):
+def parse_json_response(content: Any) -> dict[str, Any] | list[Any] | None:
+    if isinstance(content, dict | list):
         return content
     if isinstance(content, str):
         candidate = _extract_json_candidate(content)
@@ -54,15 +54,26 @@ def parse_json_response(content: Any) -> dict[str, Any] | None:
 def create_chat_completion(model: str, messages: list[dict[str, str]], **kwargs: Any):
     if not settings.llm_enabled:
         return None
-    try:
-        client = create_client()
-        request_kwargs = dict(kwargs)
-        if settings.normalized_llm_provider == "ollama":
-            request_kwargs.pop("response_format", None)
-        return client.chat.completions.create(model=model, messages=messages, **request_kwargs)
-    except Exception as exc:
-        logger.warning("%s chat completion failed: %s", settings.normalized_llm_provider, exc)
-        return None
+    client = create_client()
+    request_kwargs = dict(kwargs)
+    if settings.normalized_llm_provider == "ollama":
+        request_kwargs.pop("response_format", None)
+
+    last_error: Exception | None = None
+    for attempt in range(2):
+        try:
+            return client.chat.completions.create(model=model, messages=messages, **request_kwargs)
+        except Exception as exc:
+            last_error = exc
+            logger.warning(
+                "%s chat completion failed on attempt %s: %s",
+                settings.normalized_llm_provider,
+                attempt + 1,
+                exc,
+            )
+    if last_error:
+        logger.warning("%s chat completion exhausted retries", settings.normalized_llm_provider)
+    return None
 
 
 def create_embeddings(input: str | list[str], model: str | None = None):
