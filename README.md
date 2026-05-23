@@ -53,6 +53,7 @@ ollama pull nomic-embed-text
 ```
 
 Then set `ENABLE_LLM=true` and `LLM_PROVIDER=ollama` in `personaai-backend/.env`.
+For browser extension deployments, `CORS_ALLOWED_ORIGIN_REGEX` defaults to `chrome-extension://.*`.
 
 For hosted free-tier testing, you can also use Gemini through the OpenAI-compatible endpoint from Google AI Studio:
 
