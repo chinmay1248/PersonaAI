@@ -13,29 +13,42 @@ class RateLimiter:
     """
 
     def __init__(self, max_requests: int = 60, window_seconds: int = 60) -> None:
+        if max_requests <= 0:
+            raise ValueError("max_requests must be greater than zero")
+        if window_seconds <= 0:
+            raise ValueError("window_seconds must be greater than zero")
         self.max_requests = max_requests
         self.window_seconds = window_seconds
-        self._requests: dict[str, list[float]] = defaultdict(list)
+        self.request_times: dict[str, list[float]] = defaultdict(list)
+
+    @property
+    def _requests(self) -> dict[str, list[float]]:
+        return self.request_times
 
     def _cleanup(self, client_id: str, now: float) -> None:
         """Remove timestamps older than the sliding window."""
         cutoff = now - self.window_seconds
-        self._requests[client_id] = [
-            ts for ts in self._requests[client_id] if ts > cutoff
+        self.request_times[client_id] = [
+            ts for ts in self.request_times[client_id] if ts > cutoff
         ]
+
+    def is_allowed(self, client_id: str) -> bool:
+        """Return whether a client can make a request right now."""
+        now = time.time()
+        self._cleanup(client_id, now)
+        if len(self.request_times[client_id]) >= self.max_requests:
+            return False
+
+        self.request_times[client_id].append(now)
+        return True
 
     def check(self, client_id: str) -> None:
         """Raise HTTP 429 if the client has exceeded the rate limit."""
-        now = time.time()
-        self._cleanup(client_id, now)
-
-        if len(self._requests[client_id]) >= self.max_requests:
+        if not self.is_allowed(client_id):
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail="Too many requests. Please slow down.",
             )
-
-        self._requests[client_id].append(now)
 
 
 # Singleton instance – 60 requests per 60-second window
