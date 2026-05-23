@@ -58,7 +58,8 @@ app = FastAPI(title=settings.app_name, debug=settings.debug, lifespan=lifespan)
 # so we must use a wildcard.  The API is protected by JWT tokens.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.resolved_cors_allowed_origins,
+    allow_origin_regex=settings.cors_allowed_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -68,6 +69,28 @@ app.add_middleware(
 @app.get(f"{settings.api_prefix}/health")
 def healthcheck() -> dict[str, str]:
     return {"status": "ok", "environment": settings.app_env}
+
+
+@app.get(f"{settings.api_prefix}/meta")
+def metadata() -> dict[str, object]:
+    return {
+        "name": settings.app_name,
+        "environment": settings.app_env,
+        "api_prefix": settings.api_prefix,
+        "llm_enabled": settings.llm_enabled,
+        "llm_provider": settings.normalized_llm_provider,
+        "clients": {
+            "browser_extension": {
+                "supported_hosts": [
+                    "web.whatsapp.com",
+                    "web.telegram.org",
+                    "k.telegram.org",
+                    "a.telegram.org",
+                ],
+                "features": ["reply_suggestions", "summaries", "tone_training"],
+            }
+        },
+    }
 
 
 app.include_router(auth.router, prefix=settings.api_prefix)
