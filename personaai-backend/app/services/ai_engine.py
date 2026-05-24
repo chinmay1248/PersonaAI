@@ -1,4 +1,4 @@
-import json
+import re
 from sqlalchemy.orm import Session
 
 from app.models.chat_config import ChatConfig
@@ -23,6 +23,31 @@ class AIEngineService:
     }
 
     @classmethod
+    def detect_mood(cls, message: str) -> str:
+        return MoodDetectorService.detect(message)
+
+    @classmethod
+    def generate_reply(
+        cls,
+        db: Session,
+        user_id: str,
+        message: str,
+        chat_config_id: str,
+        count: int = 3,
+    ) -> list[str]:
+        if not message or not message.strip():
+            raise ValueError("Incoming message cannot be empty")
+
+        payload = GenerateReplyRequest(
+            chat_config_id=chat_config_id,
+            incoming_messages=[message],
+            conversation_history=[],
+            count=count,
+        )
+        _conversation, suggestions, _detected_mood = cls.generate_replies(db, user_id, payload)
+        return [EncryptionService.decrypt(item.reply_text) for item in suggestions]
+
+    @classmethod
     def generate_replies(
         cls,
         db: Session,
@@ -37,12 +62,20 @@ class AIEngineService:
         detected_mood = MoodDetectorService.detect(combined_message)
         tone_profile = db.query(ToneProfile).filter(ToneProfile.user_id == user_id).one_or_none()
         slang_patterns = tone_profile.slang_patterns if tone_profile else []
-        
+        language_mix = tone_profile.language_mix if tone_profile else []
+        avg_message_length = tone_profile.avg_message_length if tone_profile else None
+        common_emojis = tone_profile.common_emojis if tone_profile else []
+        history_dump = [message.model_dump() for message in payload.conversation_history][-50:]
+
         prompt = build_reply_prompt(
             incoming_messages=payload.incoming_messages,
+            conversation_history=history_dump,
             personality_mode=chat_config.personality_mode,
             detected_mood=detected_mood,
             slang_patterns=slang_patterns,
+            language_mix=language_mix,
+            avg_message_length=avg_message_length,
+            common_emojis=common_emojis,
         )
 
         conversation = Conversation(
@@ -50,7 +83,7 @@ class AIEngineService:
             chat_config_id=chat_config.id,
             incoming_msg=EncryptionService.encrypt(combined_message),
             detected_mood=detected_mood,
-            context_window=[message.model_dump() for message in payload.conversation_history],
+            context_window=history_dump,
         )
         db.add(conversation)
         db.flush()
@@ -59,13 +92,12 @@ class AIEngineService:
         if settings.llm_enabled:
             try:
                 reply_length_rule = (
-                    "Each reply must be short and natural, no more than 25 words. "
-                    "Keep the JSON compact."
+                    "Each reply must be short and natural, ideally 4 to 16 words, and sound like a real text message."
                 )
                 system_prompt = (
-                    f"{prompt['system']} You must provide exactly {payload.count} varied reply options formatted ONLY as a valid JSON array of strings. "
-                    f"{reply_length_rule} Do not include markdown formatting. "
-                    "Return JSON like: {\"replies\": [\"reply 1\", \"reply 2\"]}"
+                    f"{prompt['system']} Provide exactly {payload.count} varied reply options. "
+                    f"{reply_length_rule} "
+                    "Return only the replies, one per line, with no intro and no explanation."
                 )
                 response = create_chat_completion(
                     model=settings.resolved_chat_model,
@@ -73,27 +105,34 @@ class AIEngineService:
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": prompt['user']},
                     ],
-                    max_tokens=1000 if settings.normalized_llm_provider == "gemini" else 600,
+                    max_tokens=400,
                     temperature=0.8,
-                    response_format={"type": "json_object"},
                 )
 
                 if response and response.choices:
                     response_text = response.choices[0].message.content
-                    parsed_replies = parse_json_response(response_text)
-                    if isinstance(parsed_replies, dict) and "replies" in parsed_replies:
-                        reply_list = parsed_replies["replies"]
-                        if isinstance(reply_list, list):
-                            reply_texts = [str(r) for r in reply_list[:payload.count]]
+                    reply_texts = cls._extract_reply_texts(response_text, payload.count)
             except Exception as e:
                 print(f"Failed to fetch replies from {settings.normalized_llm_provider}: {e}")
         
         # Fallback if no API key or API failed
+        fallback_replies = cls._fallback_replies(
+            message=combined_message,
+            conversation_history=history_dump,
+            detected_mood=detected_mood,
+            personality_mode=chat_config.personality_mode,
+            language_mix=language_mix,
+            count=payload.count,
+        )
+
         if not reply_texts:
-            prefixes = cls.PERSONALITY_PREFIX.get(chat_config.personality_mode or "", ["hey", "sure", "okay"])
-            for index in range(payload.count):
-                prefix = prefixes[index % len(prefixes)]
-                reply_texts.append(f"{prefix} {cls._response_body(combined_message, detected_mood, index + 1)}")
+            reply_texts = fallback_replies
+        elif len(reply_texts) < payload.count:
+            for fallback_text in fallback_replies:
+                if fallback_text not in reply_texts:
+                    reply_texts.append(fallback_text)
+                if len(reply_texts) >= payload.count:
+                    break
 
         suggestions: list[ReplySuggestion] = []
         for index, text in enumerate(reply_texts):
@@ -113,12 +152,275 @@ class AIEngineService:
         return conversation, suggestions, detected_mood
 
     @staticmethod
-    def _response_body(message: str, detected_mood: str, variant: int) -> str:
-        short_message = message[:60].rstrip()
-        if detected_mood == "concerned":
-            return f"I saw your message about \"{short_message}\". Let's handle it, option {variant}."
-        if detected_mood == "happy":
-            return f"that sounds fun about \"{short_message}\". I'm in, option {variant}."
+    def _extract_reply_texts(raw_replies: object, count: int) -> list[str]:
+        parsed_replies = parse_json_response(raw_replies)
+        if isinstance(parsed_replies, dict):
+            reply_list = parsed_replies.get("replies", [])
+        elif isinstance(parsed_replies, list):
+            reply_list = parsed_replies
+        else:
+            reply_list = AIEngineService._extract_reply_lines(str(raw_replies or ""))
+
+        clean_replies = []
+        for reply in reply_list:
+            text = " ".join(str(reply).split())
+            if text and text not in clean_replies:
+                clean_replies.append(text)
+            if len(clean_replies) >= count:
+                break
+        if clean_replies:
+            return clean_replies
+
+        return AIEngineService._extract_reply_strings_from_broken_json(str(raw_replies or ""), count)
+    
+    @staticmethod
+    def _extract_reply_lines(content: str) -> list[str]:
+        lines = []
+        for line in str(content or "").splitlines():
+            cleaned = re.sub(r"^\s*(?:[-*]|\d+[.)])\s*", "", line).strip()
+            if not cleaned:
+                continue
+            if cleaned.lower().startswith("replies:"):
+                cleaned = cleaned.split(":", 1)[1].strip()
+            if cleaned:
+                lines.append(cleaned)
+        return lines
+
+    @staticmethod
+    def _extract_reply_strings_from_broken_json(content: str, count: int) -> list[str]:
+        matches = re.findall(r'"([^"\n]{2,160})"', content)
+        clean_replies = []
+        for match in matches:
+            text = " ".join(match.split())
+            if text.lower() == "replies":
+                continue
+            if text and text not in clean_replies:
+                clean_replies.append(text)
+            if len(clean_replies) >= count:
+                break
+        return clean_replies
+
+    @classmethod
+    def _fallback_replies(
+        cls,
+        message: str,
+        conversation_history: list[dict[str, str]],
+        detected_mood: str,
+        personality_mode: str | None,
+        language_mix: list[str] | None,
+        count: int,
+    ) -> list[str]:
+        cleaned = cls._clean_context(message)
+        detected_mood = cls._fallback_mood(message, detected_mood)
+        language = cls._infer_reply_language(message, conversation_history, language_mix or [])
+        templates = cls._fallback_templates(detected_mood, personality_mode, language)
+        replies = []
+        for template in templates:
+            reply = template.format(message=cleaned).strip()
+            if reply and reply not in replies:
+                replies.append(reply)
+            if len(replies) >= count:
+                break
+        return replies[:count]
+
+    @staticmethod
+    def _fallback_templates(detected_mood: str, personality_mode: str | None, language: str) -> list[str]:
+        if language == "Hindi":
+            return AIEngineService._fallback_templates_hindi(detected_mood, personality_mode)
+        if language == "Hinglish":
+            return AIEngineService._fallback_templates_hinglish(detected_mood, personality_mode)
+
+        if detected_mood == "romantic":
+            return [
+                "I miss you too.",
+                "Love you too.",
+                "Aww, that made me smile.",
+                "Come here, I miss you more.",
+                "You are too sweet.",
+            ]
+
         if detected_mood == "curious":
-            return f"about \"{short_message}\", I can reply with more detail, option {variant}."
-        return f"for \"{short_message}\", here's a natural reply option {variant}."
+            return [
+                "Tell me a little more.",
+                "What do you mean exactly?",
+                "Wait, explain that once.",
+                "I am listening.",
+                "Can you send one more detail?",
+            ]
+
+        if detected_mood == "concerned":
+            return [
+                "I get it. Give me a minute.",
+                "Do not worry, I will handle it.",
+                "Let me check and get back to you.",
+                "I understand. We will sort this out.",
+                "Okay, I am on it.",
+            ]
+
+        if detected_mood == "happy":
+            return [
+                "Haha nice.",
+                "That sounds good.",
+                "I am in.",
+                "Love that.",
+                "Perfect, let us do it.",
+            ]
+
+        if personality_mode == "serious":
+            return [
+                "Sure, I will get back to you.",
+                "Understood. I will check and reply.",
+                "Sounds good.",
+                "Okay, noted.",
+                "Give me a moment, please.",
+            ]
+
+        if personality_mode == "savage":
+            return [
+                "Bold of you to say that.",
+                "That is a plot twist.",
+                "Noted, with dramatic effect.",
+                "Okay, that was unexpected.",
+                "Fair enough.",
+            ]
+
+        return [
+            "Haha okay.",
+            "Give me a minute.",
+            "Sounds good.",
+            "I will reply properly in a bit.",
+            "Okay, done.",
+        ]
+
+    @staticmethod
+    def _fallback_templates_hinglish(detected_mood: str, personality_mode: str | None) -> list[str]:
+        if detected_mood == "romantic":
+            return [
+                "Aww, miss you too.",
+                "Love you yaar.",
+                "Tu bahut sweet hai.",
+                "Main bhi tujhe miss kar raha tha.",
+                "Aaja jaldi, yaad aa rahi thi.",
+            ]
+
+        if detected_mood == "curious":
+            return [
+                "Haan bata, detail mein.",
+                "Kya scene hai exactly?",
+                "Accha, thoda aur samjha.",
+                "Main sun raha hoon, bol.",
+                "Ek aur detail bhej na.",
+            ]
+
+        if detected_mood == "concerned":
+            return [
+                "Haan, dekh raha hoon abhi.",
+                "Tension mat le, handle kar lunga.",
+                "Ek min de, check karke batata hoon.",
+                "Samajh gaya, sort karte hain.",
+                "Theek hai, main dekh leta hoon.",
+            ]
+
+        if personality_mode == "serious":
+            return [
+                "Theek hai, main check karke batata hoon.",
+                "Samajh gaya, thodi der mein reply karta hoon.",
+                "Haan, noted.",
+                "Okay, dekh leta hoon.",
+                "Ek minute do please.",
+            ]
+
+        if personality_mode == "savage":
+            return [
+                "Waah, full plot twist hai.",
+                "Bold move yaar.",
+                "Theek hai, dramatic tha thoda.",
+                "Unexpected tha, but okay.",
+                "Fair hai, maan liya.",
+            ]
+
+        return [
+            "Haan okay.",
+            "Ek min, batata hoon.",
+            "Scene sahi hai.",
+            "Theek hai, karta hoon.",
+            "Haan done.",
+        ]
+
+    @staticmethod
+    def _fallback_templates_hindi(detected_mood: str, personality_mode: str | None) -> list[str]:
+        if detected_mood == "romantic":
+            return [
+                "Main bhi tumhe yaad kar raha tha.",
+                "Tum bahut pyaare ho.",
+                "Aww, ye sunke accha laga.",
+                "Main bhi tumse pyaar karta hoon.",
+                "Jaldi milo na.",
+            ]
+
+        if detected_mood == "curious":
+            return [
+                "Thoda aur batao.",
+                "Matlab kya hai exactly?",
+                "Accha, ek baar detail mein samjhao.",
+                "Main sun raha hoon.",
+                "Ek aur detail bhejo.",
+            ]
+
+        if detected_mood == "concerned":
+            return [
+                "Theek hai, main dekh raha hoon.",
+                "Chinta mat karo, sambhal lenge.",
+                "Mujhe ek minute do, check karke batata hoon.",
+                "Samajh gaya, isse theek karte hain.",
+                "Theek hai, main ispar kaam karta hoon.",
+            ]
+
+        if personality_mode == "serious":
+            return [
+                "Theek hai, main check karke batata hoon.",
+                "Samajh gaya. Main jaldi reply karta hoon.",
+                "Theek hai, note kar liya.",
+                "Main dekh leta hoon.",
+                "Kripya ek minute dijiye.",
+            ]
+
+        return [
+            "Theek hai.",
+            "Ek minute, batata hoon.",
+            "Accha hai.",
+            "Main thodi der mein reply karta hoon.",
+            "Ho gaya.",
+        ]
+
+    @staticmethod
+    def _clean_context(message: str) -> str:
+        return " ".join(message.split())[:80].strip()
+
+    @staticmethod
+    def _fallback_mood(message: str, detected_mood: str) -> str:
+        lowered = message.lower()
+        if any(phrase in lowered for phrase in {"miss you", "love you", "i miss", "i love", "ily", "luv"}):
+            return "romantic"
+        return detected_mood
+
+    @staticmethod
+    def _infer_reply_language(
+        message: str,
+        conversation_history: list[dict[str, str]],
+        language_mix: list[str],
+    ) -> str:
+        combined_text = " ".join(
+            [message] + [item.get("text", "") for item in conversation_history[-50:]]
+        ).lower()
+        has_devanagari = any("\u0900" <= char <= "\u097f" for char in combined_text)
+        hindi_markers = {"acha", "achha", "arre", "bhai", "haan", "hai", "kya", "kyu", "kyun", "nahi", "nhi", "theek", "thik", "yaar"}
+        marker_count = sum(1 for word in combined_text.split() if word.strip(".,!?") in hindi_markers)
+
+        if has_devanagari:
+            return "Hindi"
+        if "Hindi" in (language_mix or []) and re.search(r"\b[a-z]+\b", combined_text):
+            return "Hinglish"
+        if marker_count >= 3:
+            return "Hinglish"
+        return "English"
