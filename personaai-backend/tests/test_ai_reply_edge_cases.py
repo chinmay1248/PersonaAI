@@ -9,6 +9,8 @@ from app.models.chat_config import ChatConfig
 from app.models.tone_profile import ToneProfile
 from app.models.training_sample import TrainingSample
 from app.services.ai_engine import AIEngineService
+from app.services.encryption import EncryptionService
+from app.schemas.ai import ConversationMessage, GenerateReplyRequest
 
 
 def test_generate_reply_with_empty_message():
@@ -238,3 +240,55 @@ def test_mood_detection_with_various_inputs():
         # Just verify it returns a string
         assert isinstance(detected_mood, str)
         assert len(detected_mood) > 0
+
+
+def test_generate_reply_uses_hinglish_context_when_llm_disabled():
+    """Test that fallback replies match Hinglish chat context."""
+    db = SessionLocal()
+    try:
+        user = User(email="hinglish@test.com", password_hash="test", display_name="Tester")
+        db.add(user)
+        db.flush()
+
+        tone = ToneProfile(
+            user_id=user.id,
+            slang_patterns=["yaar", "bro"],
+            common_emojis=[],
+            formality_score=2.0,
+            language_mix=["English", "Hindi"],
+            punctuation_style="calm",
+            caps_usage="lowercase",
+        )
+        db.add(tone)
+
+        chat = ChatConfig(
+            user_id=user.id,
+            label="Friends",
+            chat_type="direct",
+            personality_mode="funny",
+        )
+        db.add(chat)
+        db.commit()
+
+        payload = GenerateReplyRequest(
+            chat_config_id=chat.id,
+            incoming_messages=["kal milna hai kya?"],
+            conversation_history=[
+                ConversationMessage(role="contact", text="bro kal ka kya scene hai"),
+                ConversationMessage(role="user", text="haan yaar dekhte hain"),
+                ConversationMessage(role="contact", text="time confirm kar de"),
+            ],
+            count=2,
+        )
+
+        _conversation, suggestions, _mood = AIEngineService.generate_replies(db, user.id, payload)
+        replies = [EncryptionService.decrypt(suggestion.reply_text).lower() for suggestion in suggestions]
+
+        assert len(replies) == 2
+        assert any(any(token in reply for token in {"haan", "kya", "yaar", "scene"}) for reply in replies)
+    finally:
+        db.query(ChatConfig).delete()
+        db.query(ToneProfile).delete()
+        db.query(User).delete()
+        db.commit()
+        db.close()
