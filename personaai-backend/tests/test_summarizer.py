@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 from uuid import uuid4
 
 from app.main import app
+from app.services.summarizer import SummarizerService
 
 client = TestClient(app)
 
@@ -27,3 +28,17 @@ def test_summarize_messages() -> None:
     payload = response.json()
     assert payload["summary"]
     assert isinstance(payload["action_items"], list)
+
+
+def test_summarizer_fallback_returns_summary_and_action_items() -> None:
+    summary, action_items = SummarizerService._fallback_summary(
+        [
+            "Please send the deck before 5 pm",
+            "Can you confirm the client call timing?",
+            "I will share the latest numbers soon",
+        ]
+    )
+
+    assert summary
+    assert isinstance(action_items, list)
+    assert action_items
