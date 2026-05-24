@@ -7,9 +7,19 @@ def test_parse_json_response_handles_dict() -> None:
     assert parse_json_response(payload) == payload
 
 
+def test_parse_json_response_handles_list() -> None:
+    payload = ["hello", "hi"]
+    assert parse_json_response(payload) == payload
+
+
 def test_parse_json_response_handles_valid_json_string() -> None:
     json_text = '{"replies": ["hello", "hi"]}'
     assert parse_json_response(json_text) == {"replies": ["hello", "hi"]}
+
+
+def test_parse_json_response_handles_json_list_string() -> None:
+    json_text = '["hello", "hi"]'
+    assert parse_json_response(json_text) == ["hello", "hi"]
 
 
 def test_parse_json_response_returns_none_for_invalid_json() -> None:
