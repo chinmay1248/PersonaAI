@@ -8,6 +8,8 @@ class MoodDetectorService:
     def detect(cls, text: str) -> str:
         if not settings.llm_enabled:
             lowered = text.lower()
+            if any(word in lowered for word in {"miss you", "love you", "ily", "luv"}):
+                return "romantic"
             if any(word in lowered for word in {"haha", "lol", "great", "nice", "awesome", "fun", "love"}):
                 return "happy"
             if any(word in lowered for word in {"sad", "angry", "upset", "bad", "stress", "deadline", "sorry"}):
