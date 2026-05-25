@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE_URL = "https://personaai-backend-production-4490.up.railway.app/v1";
+const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000/v1";
 const SUPPORTED_HOSTS = new Set(["web.whatsapp.com", "web.telegram.org", "k.telegram.org", "a.telegram.org"]);
 
 const DEFAULT_SETTINGS = {
@@ -28,6 +28,8 @@ async function handleMessage(message, sender) {
       return getPublicState();
     case "SAVE_SETTINGS":
       return saveSettings(message.settings || {});
+    case "HEALTH_CHECK":
+      return { result: await healthCheck() };
     case "LOGIN":
       return login(message.credentials || {});
     case "REGISTER":
@@ -47,7 +49,7 @@ async function handleMessage(message, sender) {
     case "CONTENT_GENERATE_REPLY":
       return { result: await generateFromContext(message.context, message.options || {}) };
     case "CONTENT_SUMMARIZE":
-      return { result: await summarizeContext(message.context) };
+      return { result: await summarizeFromContext(message.context) };
     case "CONTENT_TRAIN":
       return { result: await trainFromContext(message.context) };
     default:
@@ -122,7 +124,7 @@ async function generateForActiveTab(options) {
 
 async function summarizeActiveTab() {
   const context = await getActiveContext();
-  return summarizeContext(context);
+  return summarizeFromContext(context);
 }
 
 async function trainFromActiveTab() {
@@ -135,9 +137,17 @@ async function generateFromContext(context, options = {}) {
   const settings = await getSettings();
   const chatConfig = await ensureChatConfig(context, settings);
   const messages = normalizeMessages(context.messages);
-  const incomingMessages = messages.filter((message) => message.role !== "self").slice(-5);
+  const selectedMessage = normalizeSelectedMessage(context.selectedMessage);
+
+  if (selectedMessage?.role === "self") {
+    throw new Error("Select a message from the other person to generate a reply.");
+  }
+
+  const incomingMessages = selectedMessage?.text
+    ? [selectedMessage]
+    : selectLatestIncomingMessages(messages);
   const fallbackIncoming = messages.slice(-3);
-  const conversationHistory = messages.slice(-18).map((message) => ({
+  const conversationHistory = messages.slice(-50).map((message) => ({
     role: message.role === "self" ? "user" : "contact",
     text: message.text
   }));
@@ -153,17 +163,27 @@ async function generateFromContext(context, options = {}) {
   });
 }
 
-async function summarizeContext(context) {
+async function summarizeFromContext(context) {
   assertUsableContext(context);
   const messages = normalizeMessages(context.messages).map((message) => message.text).slice(-40);
   if (!messages.length) {
     throw new Error("No visible chat messages found to summarize.");
   }
 
-  return apiFetch("/ai/summarize", {
-    method: "POST",
-    body: { messages }
-  });
+  try {
+    const result = await apiFetch("/ai/summarize", {
+      method: "POST",
+      body: { messages }
+    });
+
+    if (isUsableSummary(result)) {
+      return result;
+    }
+  } catch (error) {
+    console.warn("PersonaAI summarize fallback:", error);
+  }
+
+  return buildLocalSummary(messages);
 }
 
 async function trainFromContext(context) {
@@ -242,6 +262,10 @@ async function insertInActiveTab(text) {
   return { inserted: true };
 }
 
+async function healthCheck() {
+  return apiFetch("/health", { method: "GET" }, { auth: false });
+}
+
 async function apiFetch(path, options = {}, fetchOptions = {}) {
   const settings = await getSettings();
   const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
@@ -267,7 +291,7 @@ async function apiFetch(path, options = {}, fetchOptions = {}) {
   }
 
   const text = await response.text();
-  const payload = text ? JSON.parse(text) : null;
+  const payload = parseResponseBody(text);
   if (!response.ok) {
     throw new Error(payload?.detail || payload?.message || `PersonaAI API error ${response.status}`);
   }
@@ -314,6 +338,64 @@ function normalizeMessages(messages) {
       role: message.role === "self" ? "self" : "contact",
       text: message.text.trim().replace(/\s+/g, " ")
     }));
+}
+
+function normalizeSelectedMessage(message) {
+  if (!message?.text || !String(message.text).trim()) {
+    return null;
+  }
+  return {
+    role: message.role === "self" ? "self" : "contact",
+    text: message.text.trim().replace(/\s+/g, " ")
+  };
+}
+
+function selectLatestIncomingMessages(messages) {
+  const latestIncoming = [];
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message.role === "self" && latestIncoming.length) {
+      break;
+    }
+    if (message.role !== "self") {
+      latestIncoming.unshift(message);
+    }
+  }
+
+  return latestIncoming.slice(-5);
+}
+
+function isUsableSummary(result) {
+  const summary = String(result?.summary || "").trim().toLowerCase();
+  return Boolean(summary && summary !== "failed to parse summary");
+}
+
+function buildLocalSummary(messages) {
+  const latest = messages.slice(-8);
+  const summaryParts = latest.slice(-3).map((message) => message.slice(0, 120));
+  const actionItems = latest.filter((message) => {
+    const lowered = message.toLowerCase();
+    return message.includes("?")
+      || ["send", "share", "call", "meet", "check", "reply", "confirm", "tomorrow", "today"].some((keyword) => lowered.includes(keyword));
+  }).slice(-4);
+
+  return {
+    summary: summaryParts.length
+      ? `Recent chat: ${summaryParts.join(" | ")}`
+      : "Recent chat messages are available, but no compact summary could be generated.",
+    action_items: actionItems
+  };
+}
+
+function parseResponseBody(text) {
+  if (!text) {
+    return null;
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { message: text };
+  }
 }
 
 function sanitizeLabel(label) {
