@@ -7,6 +7,7 @@ PersonaAI is moving from an Android APK-first experience to a browser extension 
 - Manifest V3 Chrome/Edge extension shell
 - Popup login with demo credentials
 - Backend URL and reply-count settings
+- Backend connection testing from the popup
 - WhatsApp Web and Telegram Web content overlay
 - Visible chat extraction for replies and summaries
 - Reply insertion into the active message composer
@@ -43,6 +44,7 @@ https://personaai-backend-production-4490.up.railway.app/v1
 ```
 
 Change it in the popup settings when testing a local or staging backend.
+For non-default backend URLs, the extension may ask for host permission before it can connect.
 
 ## Migration Notes
 
