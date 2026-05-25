@@ -1,57 +1,127 @@
+/* ═══════════════════════════════════════════════════════════
+   PersonaAI — In-Page Widget
+   Dark Glassmorphism Theme
+   ═══════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* ── Reset ────────────────────────────────────────────────── */
 .personaai-widget,
 .personaai-widget * {
   box-sizing: border-box;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  letter-spacing: 0;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: -0.01em;
 }
 
+/* ── Keyframes ────────────────────────────────────────────── */
+@keyframes personaai-slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes personaai-fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes personaai-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
+}
+
+@keyframes personaai-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes personaai-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes personaai-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.3); }
+  50%      { box-shadow: 0 0 20px rgba(139, 92, 246, 0.6); }
+}
+
+/* ── Widget Shell ─────────────────────────────────────────── */
 .personaai-widget {
   position: fixed;
   right: 18px;
   bottom: 18px;
   z-index: 2147483647;
-  width: min(360px, calc(100vw - 32px));
-  max-height: min(560px, calc(100vh - 32px));
+  width: min(380px, calc(100vw - 32px));
+  max-height: min(580px, calc(100vh - 32px));
   overflow: hidden;
-  color: #172026;
-  background: #fffdf9;
-  border: 1px solid #d7c9b8;
-  border-radius: 8px;
-  box-shadow: 0 18px 48px rgba(16, 24, 40, 0.2);
+  color: #e2e8f0;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 16px;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  animation: personaai-slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* ── Header ───────────────────────────────────────────────── */
 .personaai-header {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  background: #0f766e;
-  color: #ffffff;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(6, 182, 212, 0.1));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.personaai-logo,
+.personaai-logo {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 15px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+  box-shadow: 0 2px 12px rgba(139, 92, 246, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.personaai-logo:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 18px rgba(139, 92, 246, 0.5);
+}
+
 .personaai-icon-button {
   width: 30px;
   height: 30px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 0;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.personaai-logo {
-  color: #0f766e;
-  background: #e7fbf6;
-  font-weight: 800;
-}
-
-.personaai-icon-button {
   margin-left: auto;
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
   font-size: 18px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.personaai-icon-button:hover {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .personaai-title {
@@ -62,25 +132,48 @@
 
 .personaai-title strong {
   font-size: 14px;
+  font-weight: 700;
   line-height: 18px;
+  color: #f1f5f9;
 }
 
 .personaai-title span {
-  color: #cef4ec;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 15px;
+  color: #8b5cf6;
+  letter-spacing: 0.02em;
 }
 
+/* ── Body ─────────────────────────────────────────────────── */
 .personaai-body {
   display: grid;
   gap: 10px;
   max-height: 500px;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
 }
 
+.personaai-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.personaai-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.personaai-body::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 10px;
+}
+
+/* ── Minimized ────────────────────────────────────────────── */
 .personaai-widget.is-minimized {
-  width: 182px;
+  width: 200px;
+  max-height: 58px;
 }
 
 .personaai-widget.is-minimized .personaai-body,
@@ -88,47 +181,124 @@
   display: none;
 }
 
+/* ── Action Buttons ───────────────────────────────────────── */
 .personaai-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr 72px;
+  grid-template-columns: 1fr 1fr 80px;
   gap: 8px;
 }
 
 .personaai-button {
-  min-height: 34px;
-  border: 1px solid #d8c9b5;
-  border-radius: 6px;
-  color: #172026;
-  background: #fff7ed;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.04);
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.personaai-button:hover {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
+}
+
+.personaai-button:active {
+  transform: translateY(0);
 }
 
 .personaai-button.primary {
-  border-color: #0f766e;
+  border: none;
   color: #ffffff;
-  background: #0f766e;
+  background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+  box-shadow: 0 2px 12px rgba(139, 92, 246, 0.3);
+}
+
+.personaai-button.primary:hover {
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.45);
+  transform: translateY(-1px);
 }
 
 .personaai-button.ghost {
-  background: #ffffff;
+  color: #94a3b8;
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.personaai-button.ghost:hover {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .personaai-button.small {
-  min-height: 30px;
-  padding: 0 12px;
-  color: #ffffff;
-  background: #c96c50;
-  border-color: #c96c50;
-}
-
-.personaai-status {
-  color: #5e6a72;
+  min-height: 32px;
+  padding: 0 14px;
   font-size: 12px;
-  line-height: 17px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  border: none;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.25);
 }
 
+.personaai-button.small:hover {
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+}
+
+.personaai-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* ── Status Bar ───────────────────────────────────────────── */
+.personaai-status {
+  color: #64748b;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 16px;
+  padding: 4px 0;
+  transition: color 0.2s ease;
+}
+
+.personaai-status.is-loading {
+  color: #8b5cf6;
+  animation: personaai-pulse 1.5s ease-in-out infinite;
+}
+
+/* ── Loading Spinner ──────────────────────────────────────── */
+.personaai-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  gap: 8px;
+}
+
+.personaai-loader::before {
+  content: '';
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(139, 92, 246, 0.2);
+  border-top-color: #8b5cf6;
+  border-radius: 50%;
+  animation: personaai-spin 0.7s linear infinite;
+}
+
+.personaai-loader-text {
+  color: #8b5cf6;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ── Results ──────────────────────────────────────────────── */
 .personaai-results {
   display: grid;
   gap: 8px;
@@ -137,27 +307,36 @@
 .personaai-result {
   display: grid;
   gap: 8px;
-  padding: 10px;
-  border: 1px solid #e4d9cc;
-  border-radius: 8px;
-  background: #ffffff;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  animation: personaai-fadeIn 0.3s ease;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.personaai-result:hover {
+  border-color: rgba(139, 92, 246, 0.2);
+  background: rgba(139, 92, 246, 0.04);
 }
 
 .personaai-result p,
-.personaai-result li,
-.personaai-empty {
+.personaai-result li {
   margin: 0;
-  color: #23313a;
+  color: #cbd5e1;
   font-size: 13px;
-  line-height: 18px;
+  line-height: 19px;
   white-space: normal;
 }
 
 .personaai-result h3 {
   margin: 0;
-  color: #172026;
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  color: #8b5cf6;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .personaai-result ul {
@@ -165,10 +344,72 @@
   padding-left: 18px;
 }
 
+.personaai-result li {
+  margin-top: 4px;
+}
+
+.personaai-empty {
+  margin: 0;
+  color: #64748b;
+  font-size: 12.5px;
+  line-height: 18px;
+  text-align: center;
+  padding: 16px 0;
+}
+
+/* ── Chat Change Banner ───────────────────────────────────── */
+.personaai-chat-changed {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px solid rgba(6, 182, 212, 0.15);
+  color: #06b6d4;
+  font-size: 11.5px;
+  font-weight: 600;
+  animation: personaai-fadeIn 0.3s ease;
+}
+
+.personaai-chat-changed::before {
+  content: '↻';
+  font-size: 14px;
+}
+
+/* ── Selected Message Highlight ───────────────────────────── */
+.personaai-selected-message {
+  position: relative;
+  outline: 2px solid rgba(139, 92, 246, 0.7) !important;
+  outline-offset: 3px;
+  border-radius: 8px;
+  animation: personaai-glow 2s ease-in-out infinite;
+}
+
+.personaai-selected-message::after {
+  content: '✦ PersonaAI';
+  position: absolute;
+  top: -11px;
+  right: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-size: 9.5px;
+  line-height: 14px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 520px) {
   .personaai-widget {
-    right: 10px;
-    bottom: 10px;
-    width: calc(100vw - 20px);
+    right: 8px;
+    bottom: 8px;
+    width: calc(100vw - 16px);
+    border-radius: 12px;
   }
 }
