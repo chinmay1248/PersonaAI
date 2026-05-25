@@ -8,6 +8,7 @@ const elements = {
   replyButton: document.querySelector("#replyButton"),
   summaryButton: document.querySelector("#summaryButton"),
   trainButton: document.querySelector("#trainButton"),
+  healthButton: document.querySelector("#healthButton"),
   settingsForm: document.querySelector("#settingsForm"),
   apiBaseUrlInput: document.querySelector("#apiBaseUrlInput"),
   suggestionCountInput: document.querySelector("#suggestionCountInput"),
@@ -54,6 +55,7 @@ function bindEvents() {
 
   elements.settingsForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    await requestBackendPermission(elements.apiBaseUrlInput.value);
     const response = await sendMessage({
       type: "SAVE_SETTINGS",
       settings: {
@@ -65,6 +67,23 @@ function bindEvents() {
 
     applyState(response);
     renderInfo("Settings saved.");
+  });
+
+  elements.healthButton.addEventListener("click", async () => {
+    await withBusy(async () => {
+      await requestBackendPermission(elements.apiBaseUrlInput.value);
+      await sendMessage({
+        type: "SAVE_SETTINGS",
+        settings: {
+          apiBaseUrl: elements.apiBaseUrlInput.value,
+          suggestionCount: Number(elements.suggestionCountInput.value),
+          personalityMode: elements.personalityInput.value
+        }
+      });
+      const response = await sendMessage({ type: "HEALTH_CHECK" });
+      renderInfo(`Backend ${response.result.status} (${response.result.environment}).`);
+      await refreshState();
+    });
   });
 
   elements.results.addEventListener("click", async (event) => {
@@ -181,6 +200,35 @@ async function sendMessage(message) {
     throw new Error(response?.error || "PersonaAI could not complete that action.");
   }
   return response;
+}
+
+async function requestBackendPermission(url) {
+  const origin = getOriginPattern(url);
+  if (!origin) {
+    return;
+  }
+
+  const hasPermission = await chrome.permissions.contains({ origins: [origin] });
+  if (hasPermission) {
+    return;
+  }
+
+  const granted = await chrome.permissions.request({ origins: [origin] });
+  if (!granted) {
+    throw new Error("Permission was not granted for that backend URL.");
+  }
+}
+
+function getOriginPattern(url) {
+  try {
+    const parsed = new URL(url);
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return null;
+    }
+    return `${parsed.origin}/*`;
+  } catch {
+    return null;
+  }
 }
 
 function escapeHtml(value) {
