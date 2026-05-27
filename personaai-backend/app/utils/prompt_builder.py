@@ -17,6 +17,8 @@ def build_reply_prompt(
     language_mix: list[str] | None = None,
     avg_message_length: float | None = None,
     common_emojis: list[str] | None = None,
+    chat_tone_profile: dict | None = None,
+    global_tone_profile: dict | None = None,
 ) -> dict[str, str]:
     personality = personality_mode or "balanced"
     recent_history = conversation_history[-50:]
@@ -29,6 +31,11 @@ def build_reply_prompt(
     latest_sender_intent = infer_sender_intent(incoming_messages, recent_history)
     latest_message = "\n".join(incoming_messages)
 
+    # Build chat-specific tone context
+    chat_tone_hint = ""
+    if chat_tone_profile:
+        chat_tone_hint = build_chat_tone_hint(chat_tone_profile, global_tone_profile)
+
     return {
         "system": (
             "You write replies for the user inside an ongoing personal chat. "
@@ -40,19 +47,22 @@ def build_reply_prompt(
             f"Tone hints from the user's past messages: {tone_hint}. "
             f"Emoji style hint: {emoji_hint}. "
             f"Preferred reply length: {length_hint}. "
-            "Match the language actually used in the recent conversation. "
-            "If the chat is in Hindi or Hinglish, reply in Hindi or Hinglish. "
-            "Use the recent conversation to understand references, plans, jokes, names, promises, and emotional tone before replying. "
-            "First understand what the other person is trying to do: ask, inform, tease, plan, confirm, flirt, complain, or share something. "
-            "Then reply directly to that move in the conversation. "
-            "Do not answer like a customer-support bot. "
-            "Do not over-explain. "
-            "Do not be overly formal unless the chat is formal. "
-            "Avoid generic filler like 'okay', 'sounds good', 'give me a minute', or 'haha okay' unless it truly fits the exact context. "
-            "If they shared an item, photo, plan, joke, or opinion, react specifically to that thing instead of giving a vague acknowledgement. "
-            "Each option should feel like a believable next text the user would actually send right now. "
-            "The options should be meaningfully different in angle, but all should fit the same context. "
-            "Do not mention that you analyzed the chat."
+            + (f"Chat-specific communication style: {chat_tone_hint} " if chat_tone_hint else "")
+            + (
+                "Match the language actually used in the recent conversation. "
+                "If the chat is in Hindi or Hinglish, reply in Hindi or Hinglish. "
+                "Use the recent conversation to understand references, plans, jokes, names, promises, and emotional tone before replying. "
+                "First understand what the other person is trying to do: ask, inform, tease, plan, confirm, flirt, complain, or share something. "
+                "Then reply directly to that move in the conversation. "
+                "Do not answer like a customer-support bot. "
+                "Do not over-explain. "
+                "Do not be overly formal unless the chat is formal. "
+                "Avoid generic filler like 'okay', 'sounds good', 'give me a minute', or 'haha okay' unless it truly fits the exact context. "
+                "If they shared an item, photo, plan, joke, or opinion, react specifically to that thing instead of giving a vague acknowledgement. "
+                "Each option should feel like a believable next text the user would actually send right now. "
+                "The options should be meaningfully different in angle, but all should fit the same context. "
+                "Do not mention that you analyzed the chat."
+            )
         ),
         "user": (
             "Task: write reply options for the latest incoming message(s).\n\n"
@@ -144,3 +154,32 @@ def infer_sender_intent(incoming_messages: list[str], conversation_history: list
     if any(token in combined for token in {"sorry", "late", "stuck", "problem", "issue", "tension"}):
         return "sharing a problem or mild stress"
     return "sharing an update and expecting a natural reaction"
+
+
+def build_chat_tone_hint(chat_tone_profile: dict, global_tone_profile: dict | None = None) -> str:
+    """Build a natural language hint about chat-specific tone differences."""
+    hints = []
+
+    if chat_tone_profile.get("formality_score"):
+        formality = chat_tone_profile["formality_score"]
+        if formality > 4.0:
+            hints.append("very formal")
+        elif formality > 3.5:
+            hints.append("formal")
+        elif formality < 2.0:
+            hints.append("very casual")
+        elif formality < 2.5:
+            hints.append("casual")
+
+    if chat_tone_profile.get("punctuation_style"):
+        hints.append(f"{chat_tone_profile['punctuation_style']} punctuation style")
+
+    if chat_tone_profile.get("common_emojis"):
+        emoji_list = chat_tone_profile["common_emojis"][:2]
+        hints.append(f"often uses emojis like: {' '.join(emoji_list)}")
+
+    if chat_tone_profile.get("message_openers"):
+        openers = chat_tone_profile["message_openers"][:2]
+        hints.append(f"often starts messages with: {', '.join(openers)}")
+
+    return " | ".join(hints) if hints else ""
