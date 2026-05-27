@@ -25,3 +25,5 @@ class User(Base):
     conversations = relationship("Conversation", back_populates="user", cascade="all, delete-orphan")
     training_samples = relationship("TrainingSample", back_populates="user", cascade="all, delete-orphan")
     feedback_logs = relationship("FeedbackLog", back_populates="user", cascade="all, delete-orphan")
+    chat_message_logs = relationship("ChatMessageLog", back_populates="user", cascade="all, delete-orphan")
+    chat_tone_profiles = relationship("ChatToneProfile", back_populates="user", cascade="all, delete-orphan")

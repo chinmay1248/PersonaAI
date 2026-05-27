@@ -23,3 +23,5 @@ class ChatConfig(Base):
 
     user = relationship("User", back_populates="chat_configs")
     conversations = relationship("Conversation", back_populates="chat_config")
+    message_logs = relationship("ChatMessageLog", back_populates="chat_config")
+    tone_profiles = relationship("ChatToneProfile", back_populates="chat_config")
