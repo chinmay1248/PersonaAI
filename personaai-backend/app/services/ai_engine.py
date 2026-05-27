@@ -5,10 +5,12 @@ from app.models.chat_config import ChatConfig
 from app.models.conversation import Conversation
 from app.models.reply_suggestion import ReplySuggestion
 from app.models.tone_profile import ToneProfile
+from app.models.chat_tone_profile import ChatToneProfile
 from app.schemas.ai import GenerateReplyRequest
 from app.services.encryption import EncryptionService
 from app.services.mood_detector import MoodDetectorService
 from app.services.openai_client import create_chat_completion, parse_json_response
+from app.services.chat_history_service import ChatHistoryService
 from app.utils.prompt_builder import build_reply_prompt
 from app.config import get_settings
 
@@ -67,15 +69,46 @@ class AIEngineService:
         common_emojis = tone_profile.common_emojis if tone_profile else []
         history_dump = [message.model_dump() for message in payload.conversation_history][-50:]
 
+        # Load chat-specific tone profile
+        chat_tone_profile = db.query(ChatToneProfile).filter(
+            ChatToneProfile.chat_config_id == chat_config.id
+        ).one_or_none()
+
+        # Build chat-specific tone dict for prompt
+        chat_tone_dict = None
+        if chat_tone_profile:
+            chat_tone_dict = {
+                "formality_score": chat_tone_profile.formality_score,
+                "punctuation_style": chat_tone_profile.punctuation_style,
+                "common_emojis": chat_tone_profile.common_emojis,
+                "message_openers": chat_tone_profile.message_openers,
+                "message_closers": chat_tone_profile.message_closers,
+                "avg_message_length": chat_tone_profile.avg_message_length,
+            }
+
+        # Load extended chat history from ChatMessageLog
+        chat_message_logs = ChatHistoryService.get_chat_history(db, chat_config.id, limit=100)
+        extended_history_dump = []
+        if chat_message_logs:
+            extended_history_dump = [
+                {"role": "user" if log.message_role == "user" else "contact", "text": log.message_text}
+                for log in reversed(chat_message_logs)
+            ]
+
+        # Use extended history if available, otherwise fall back to conversation_history
+        history_to_use = extended_history_dump if extended_history_dump else history_dump
+
         prompt = build_reply_prompt(
             incoming_messages=payload.incoming_messages,
-            conversation_history=history_dump,
+            conversation_history=history_to_use,
             personality_mode=chat_config.personality_mode,
             detected_mood=detected_mood,
             slang_patterns=slang_patterns,
             language_mix=language_mix,
             avg_message_length=avg_message_length,
             common_emojis=common_emojis,
+            chat_tone_profile=chat_tone_dict,
+            global_tone_profile=tone_profile,
         )
 
         conversation = Conversation(
@@ -87,6 +120,16 @@ class AIEngineService:
         )
         db.add(conversation)
         db.flush()
+
+        # Log the incoming message to chat history
+        ChatHistoryService.log_message(
+            db=db,
+            chat_config_id=chat_config.id,
+            user_id=user_id,
+            message_role="contact",
+            message_text=combined_message,
+            detected_mood=detected_mood,
+        )
 
         reply_texts = []
         if settings.llm_enabled:
