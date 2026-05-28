@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import Base, engine, SessionLocal
-from app.routers import ai_reply, auth, chat_config, feedback, summarizer, tone
+from app.routers import ai_reply, auth, chat_config, chat_history, feedback, summarizer, tone
 
 settings = get_settings()
 
@@ -99,3 +99,4 @@ app.include_router(ai_reply.router, prefix=settings.api_prefix)
 app.include_router(summarizer.router, prefix=settings.api_prefix)
 app.include_router(tone.router, prefix=settings.api_prefix)
 app.include_router(feedback.router, prefix=settings.api_prefix)
+app.include_router(chat_history.router, prefix=settings.api_prefix)
