@@ -1,0 +1,3 @@
+Welcome to PersonaAI.
+
+Please read the docs/IMPLEMENTATION_OVERVIEW.md first.

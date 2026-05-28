@@ -1,0 +1,1 @@
+Just double click on BUILD_APK.bat to start the build process.
