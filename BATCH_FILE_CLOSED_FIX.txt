@@ -1,0 +1,1 @@
+If the batch file closes immediately, open a command prompt and run it from there to see the error message.

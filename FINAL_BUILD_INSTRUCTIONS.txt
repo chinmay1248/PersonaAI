@@ -1,0 +1,4 @@
+Final build instructions:
+- Ensure JDK 17 is installed
+- Ensure Android SDK is configured
+- Run the build script
