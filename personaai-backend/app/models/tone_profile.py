@@ -20,6 +20,7 @@ class ToneProfile(Base):
     punctuation_style: Mapped[str | None] = mapped_column(String(50), nullable=True)
     caps_usage: Mapped[str | None] = mapped_column(String(50), nullable=True)
     language_mix: Mapped[list[str]] = mapped_column(JSON, default=list)
+    tone_shifts: Mapped[dict] = mapped_column(JSON, default=dict)
     vector_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     accuracy_score: Mapped[float] = mapped_column(Float, default=0.0)
     last_trained_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
