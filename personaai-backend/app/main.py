@@ -1,8 +1,12 @@
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
+from pathlib import Path
 
+from alembic import command
+from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import inspect, text
 
 from app.config import get_settings
 from app.database import Base, engine, SessionLocal
@@ -16,6 +20,7 @@ async def lifespan(application: FastAPI) -> AsyncGenerator[None, None]:
     """Startup/shutdown events for the application."""
     import app.models  # noqa: F401
 
+    _sync_schema()
     Base.metadata.create_all(bind=engine)
 
     # Seed demo user so the pre-filled login credentials work out of the box
@@ -49,6 +54,73 @@ def _seed_demo_user() -> None:
         print(f"Failed to seed demo user: {exc}")
     finally:
         db.close()
+
+
+def _sync_schema() -> None:
+    """Bring the local database schema up to date before serving requests."""
+    inspector = inspect(engine)
+    table_names = set(inspector.get_table_names())
+    has_version_table = "alembic_version" in table_names
+
+    if not table_names or table_names == {"alembic_version"}:
+        _run_migrations()
+        return
+
+    if not has_version_table or not _has_recorded_alembic_revision():
+        Base.metadata.create_all(bind=engine)
+        _apply_legacy_schema_fixes()
+        _stamp_head()
+        return
+
+    _run_migrations()
+
+
+def _run_migrations() -> None:
+    """Apply Alembic migrations using the configured database URL."""
+    project_root = Path(__file__).resolve().parents[1]
+    alembic_config = Config(str(project_root / "alembic.ini"))
+    alembic_config.set_main_option("sqlalchemy.url", settings.database_url)
+    command.upgrade(alembic_config, "head")
+
+
+def _stamp_head() -> None:
+    """Mark a legacy schema as being at the latest Alembic revision."""
+    project_root = Path(__file__).resolve().parents[1]
+    alembic_config = Config(str(project_root / "alembic.ini"))
+    alembic_config.set_main_option("sqlalchemy.url", settings.database_url)
+    command.stamp(alembic_config, "head")
+
+
+def _has_recorded_alembic_revision() -> bool:
+    """Return True when alembic_version exists and contains a revision row."""
+    with engine.connect() as connection:
+        version_count = connection.execute(text("SELECT COUNT(*) FROM alembic_version")).scalar_one()
+    return version_count > 0
+
+
+def _apply_legacy_schema_fixes() -> None:
+    """Patch older local databases that predate Alembic-managed changes."""
+    inspector = inspect(engine)
+    table_names = set(inspector.get_table_names())
+    if "tone_profiles" not in table_names:
+        return
+
+    tone_profile_columns = {column["name"] for column in inspector.get_columns("tone_profiles")}
+    if "tone_shifts" in tone_profile_columns:
+        return
+
+    with engine.begin() as connection:
+        if connection.dialect.name == "sqlite":
+            connection.execute(
+                text("ALTER TABLE tone_profiles ADD COLUMN tone_shifts JSON NOT NULL DEFAULT '{}'")
+            )
+        else:
+            connection.execute(
+                text(
+                    "ALTER TABLE tone_profiles "
+                    "ADD COLUMN IF NOT EXISTS tone_shifts JSON DEFAULT '{}'::json NOT NULL"
+                )
+            )
 
 
 app = FastAPI(title=settings.app_name, debug=settings.debug, lifespan=lifespan)
