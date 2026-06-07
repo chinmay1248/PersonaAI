@@ -1,26 +1,27 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
+
 from app.database import get_db
-from app.middleware.auth import get_current_user
+from app.middleware.auth_middleware import get_current_user
 from app.models import ChatConfig, User
 from app.services.chat_history_service import ChatHistoryService
 from app.services.chat_tone_learner import ChatToneLearnerService
-from pydantic import BaseModel
-from typing import Optional
 
 router = APIRouter(prefix="/chats", tags=["chat_history"])
 
 
 class MessageResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     role: str
     text: str
     mood: Optional[str] = None
     language: Optional[str] = None
     timestamp: str
-
-    class Config:
-        from_attributes = True
 
 
 class ChatHistoryResponse(BaseModel):
