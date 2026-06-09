@@ -79,3 +79,40 @@ def test_get_chat_history_route_returns_messages_and_total_count() -> None:
     assert payload["messages"][1]["text"] == "hey bro"
 
 
+def test_get_chat_history_route_supports_mood_filter() -> None:
+    headers, user_id = _register_user()
+    chat_config_id = _create_chat_config(headers, label="Mood Filter Chat")
+
+    db = SessionLocal()
+    try:
+        ChatHistoryService.log_message(
+            db=db,
+            chat_config_id=chat_config_id,
+            user_id=user_id,
+            message_role="contact",
+            message_text="this is great",
+            detected_mood="happy",
+        )
+        ChatHistoryService.log_message(
+            db=db,
+            chat_config_id=chat_config_id,
+            user_id=user_id,
+            message_role="contact",
+            message_text="i am worried",
+            detected_mood="concerned",
+        )
+    finally:
+        db.close()
+
+    response = client.get(
+        f"/v1/chats/{chat_config_id}/history?mood_filter=happy",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload["messages"]) == 1
+    assert payload["messages"][0]["mood"] == "happy"
+    assert payload["messages"][0]["text"] == "this is great"
+
+
