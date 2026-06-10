@@ -116,3 +116,28 @@ def test_get_chat_history_route_supports_mood_filter() -> None:
     assert payload["messages"][0]["text"] == "this is great"
 
 
+def test_get_recent_messages_route_returns_only_recent_entries() -> None:
+    headers, user_id = _register_user()
+    chat_config_id = _create_chat_config(headers, label="Recent Chat")
+
+    db = SessionLocal()
+    try:
+        ChatHistoryService.log_message(
+            db=db,
+            chat_config_id=chat_config_id,
+            user_id=user_id,
+            message_role="user",
+            message_text="fresh message",
+            detected_mood="happy",
+        )
+    finally:
+        db.close()
+
+    response = client.get(f"/v1/chats/{chat_config_id}/history/recent?minutes=5", headers=headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total_count"] == 1
+    assert payload["messages"][0]["text"] == "fresh message"
+
+
