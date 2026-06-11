@@ -141,3 +141,50 @@ def test_get_recent_messages_route_returns_only_recent_entries() -> None:
     assert payload["messages"][0]["text"] == "fresh message"
 
 
+def test_get_chat_tone_profile_route_returns_profile() -> None:
+    headers, user_id = _register_user()
+    chat_config_id = _create_chat_config(headers, label="Tone Profile Chat")
+
+    db = SessionLocal()
+    try:
+        tone_profile = ChatToneProfile(
+            chat_config_id=chat_config_id,
+            user_id=user_id,
+            avg_message_length=8.5,
+            emoji_frequency=0.2,
+            common_emojis=["😊"],
+            slang_patterns=["bro", "lol"],
+            punctuation_style="expressive",
+            formality_score=2.1,
+            caps_usage="lowercase",
+            language_mix=["English"],
+            tone_shifts={},
+            message_openers=["hey"],
+            message_closers=["lol"],
+            response_timing={},
+        )
+        db.add(tone_profile)
+        db.commit()
+    finally:
+        db.close()
+
+    response = client.get(f"/v1/chats/{chat_config_id}/tone-profile", headers=headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["chat_config_id"] == chat_config_id
+    assert payload["punctuation_style"] == "expressive"
+    assert payload["slang_patterns"] == ["bro", "lol"]
+    assert payload["message_openers"] == ["hey"]
+
+
+def test_get_chat_tone_profile_route_returns_404_when_missing() -> None:
+    headers, _user_id = _register_user()
+    chat_config_id = _create_chat_config(headers, label="Missing Tone Chat")
+
+    response = client.get(f"/v1/chats/{chat_config_id}/tone-profile", headers=headers)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Tone profile not trained yet"
+
+
