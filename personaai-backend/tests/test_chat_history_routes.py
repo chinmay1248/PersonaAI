@@ -188,3 +188,74 @@ def test_get_chat_tone_profile_route_returns_404_when_missing() -> None:
     assert response.json()["detail"] == "Tone profile not trained yet"
 
 
+def test_retrain_chat_tone_route_creates_profile_from_user_messages() -> None:
+    headers, user_id = _register_user()
+    chat_config_id = _create_chat_config(headers, label="Retrain Tone Chat")
+
+    db = SessionLocal()
+    try:
+        ChatHistoryService.log_message(
+            db=db,
+            chat_config_id=chat_config_id,
+            user_id=user_id,
+            message_role="user",
+            message_text="hey bro this is wild lol!",
+        )
+        ChatHistoryService.log_message(
+            db=db,
+            chat_config_id=chat_config_id,
+            user_id=user_id,
+            message_role="user",
+            message_text="yeah i got you bro 😊",
+        )
+    finally:
+        db.close()
+
+    response = client.post(f"/v1/chats/{chat_config_id}/retrain-tone", headers=headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "trained"
+    assert payload["chat_config_id"] == chat_config_id
+    assert payload["avg_message_length"] > 0
+
+    verify_db = SessionLocal()
+    try:
+        stored_profile = verify_db.query(ChatToneProfile).filter(
+            ChatToneProfile.chat_config_id == chat_config_id
+        ).one_or_none()
+        assert stored_profile is not None
+        assert "bro" in (stored_profile.slang_patterns or [])
+    finally:
+        verify_db.close()
+
+
+def test_export_chat_history_route_respects_include_encrypted_flag() -> None:
+    headers, user_id = _register_user()
+    chat_config_id = _create_chat_config(headers, label="Export Chat")
+
+    db = SessionLocal()
+    try:
+        ChatHistoryService.log_message(
+            db=db,
+            chat_config_id=chat_config_id,
+            user_id=user_id,
+            message_role="contact",
+            message_text="keep this visible",
+            detected_mood="neutral",
+        )
+    finally:
+        db.close()
+
+    default_response = client.get(f"/v1/chats/{chat_config_id}/export", headers=headers)
+    decrypted_response = client.get(
+        f"/v1/chats/{chat_config_id}/export?include_encrypted=true",
+        headers=headers,
+    )
+
+    assert default_response.status_code == 200
+    assert default_response.json()["messages"][0]["text"] == "[encrypted]"
+    assert decrypted_response.status_code == 200
+    assert decrypted_response.json()["messages"][0]["text"] == "keep this visible"
+
+
