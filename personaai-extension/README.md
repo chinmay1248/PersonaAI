@@ -19,6 +19,7 @@ PersonaAI is moving from an Android APK-first experience to a browser extension 
 
    ```bash
    cd personaai-backend
+   copy .env.example .env
    python -m uvicorn app.main:app --reload
    ```
 

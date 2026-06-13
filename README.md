@@ -41,6 +41,7 @@ The repo root is now organized so a first-time reader can tell where to start:
 
 ```bash
 cd personaai-backend
+copy .env.example .env
 pip install -r requirements.txt
 python -m uvicorn app.main:app --reload
 ```

@@ -259,3 +259,24 @@ def test_export_chat_history_route_respects_include_encrypted_flag() -> None:
     assert decrypted_response.json()["messages"][0]["text"] == "keep this visible"
 
 
+def test_chat_history_routes_enforce_chat_ownership() -> None:
+    owner_headers, owner_user_id = _register_user()
+    intruder_headers, _intruder_user_id = _register_user()
+    chat_config_id = _create_chat_config(owner_headers, label="Private Chat")
+
+    db = SessionLocal()
+    try:
+        ChatHistoryService.log_message(
+            db=db,
+            chat_config_id=chat_config_id,
+            user_id=owner_user_id,
+            message_role="contact",
+            message_text="secret message",
+        )
+    finally:
+        db.close()
+
+    response = client.get(f"/v1/chats/{chat_config_id}/history", headers=intruder_headers)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Chat not found"

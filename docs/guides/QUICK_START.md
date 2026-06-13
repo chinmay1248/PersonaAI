@@ -13,15 +13,18 @@ Get PersonaAI running in 5 minutes!
 # 1. Navigate to backend
 cd personaai-backend
 
-# 2. Optional: enable the free local AI provider
+# 2. Create your local env file
+copy .env.example .env
+
+# 3. Optional: enable the free local AI provider
 # Install Ollama first, then in another terminal run:
 ollama pull llama3.2:3b
 ollama pull nomic-embed-text
 
-# 3. Start with docker-compose (includes DB, cache, and API)
+# 4. Start with docker-compose (includes DB, cache, and API)
 docker-compose up -d
 
-# 4. Verify it's working
+# 5. Verify it's working
 curl http://localhost:8000/v1/health
 ```
 
@@ -50,7 +53,7 @@ LLM_EMBEDDING_MODEL=nomic-embed-text
 2. Enable Developer mode.
 3. Choose Load unpacked.
 4. Select the repo's `personaai-extension/` folder.
-5. Open the PersonaAI popup and set Backend URL to `http://localhost:8000/v1`.
+5. Open the PersonaAI popup and confirm the Backend URL is `http://localhost:8000/v1`.
 6. Sign in with the demo account or register a new account.
 
 Demo login:
@@ -68,10 +71,13 @@ Open WhatsApp Web or Telegram Web, select a chat, then use either the page overl
 # 1. Navigate to frontend
 cd personaai-app
 
-# 2. Install dependencies
+# 2. Create your local env file
+copy .env.example .env
+
+# 3. Install dependencies
 npm install
 
-# 3. Start Expo dev server
+# 4. Start Expo dev server
 npm start
 # or: expo start
 ```
