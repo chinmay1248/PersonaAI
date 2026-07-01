@@ -315,7 +315,52 @@ def test_multiple_chats_independent_tones(setup_user_with_tone_and_chat):
         ChatToneProfile.chat_config_id == professional_chat.id
     ).first()
 
-    # Verify they're independent
     assert casual_retrieved.formality_score < prof_retrieved.formality_score
     assert casual_retrieved.emoji_frequency > prof_retrieved.emoji_frequency
     assert len(casual_retrieved.slang_patterns) > len(prof_retrieved.slang_patterns)
+
+from unittest.mock import patch
+
+def test_auto_retrain_triggered_every_20_messages(setup_user_with_tone_and_chat):
+    """Test that retrain_chat_tone_job is triggered every 20 messages."""
+    db, user, chat, _, _ = setup_user_with_tone_and_chat
+
+    # Reset message count to 19
+    db.query(ChatMessageLog).filter(ChatMessageLog.chat_config_id == chat.id).delete()
+    for i in range(19):
+        ChatHistoryService.log_message(
+            db=db,
+            chat_config_id=chat.id,
+            user_id=user.id,
+            message_role="user" if i % 2 == 0 else "contact",
+            message_text=f"Message {i}",
+        )
+    db.commit()
+
+    payload = GenerateReplyRequest(
+        chat_config_id=chat.id,
+        incoming_messages=["this is the 20th message"],
+        conversation_history=[],
+        count=1,
+    )
+
+    with patch("app.workers.training_job.retrain_chat_tone_job.delay") as mock_delay:
+        # Generate reply (this should log the 20th message and trigger retrain)
+        AIEngineService.generate_replies(db, user.id, payload)
+        
+        # Verify it was called
+        mock_delay.assert_called_once_with(chat.id, user.id)
+
+    # Now add another message (21st)
+    payload_21 = GenerateReplyRequest(
+        chat_config_id=chat.id,
+        incoming_messages=["this is the 21st message"],
+        conversation_history=[],
+        count=1,
+    )
+
+    with patch("app.workers.training_job.retrain_chat_tone_job.delay") as mock_delay_21:
+        AIEngineService.generate_replies(db, user.id, payload_21)
+        
+        # Verify it was NOT called for 21
+        mock_delay_21.assert_not_called()

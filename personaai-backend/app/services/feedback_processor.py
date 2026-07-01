@@ -22,3 +22,35 @@ class FeedbackProcessorService:
             )
         )
         db.commit()
+
+    @staticmethod
+    def get_positive_reply_patterns(db: Session, user_id: str, limit: int = 5) -> list[str]:
+        """Fetch texts of replies recently rated as 'liked'."""
+        from app.services.encryption import EncryptionService
+        logs = db.query(FeedbackLog).filter(
+            FeedbackLog.user_id == user_id,
+            FeedbackLog.rating == "liked"
+        ).order_by(FeedbackLog.created_at.desc()).limit(limit).all()
+
+        patterns = []
+        for log in logs:
+            suggestion = db.get(ReplySuggestion, log.reply_suggestion_id)
+            if suggestion:
+                patterns.append(EncryptionService.decrypt(suggestion.reply_text))
+        return patterns
+
+    @staticmethod
+    def get_negative_reply_patterns(db: Session, user_id: str, limit: int = 5) -> list[str]:
+        """Fetch texts of replies recently rated as 'disliked'."""
+        from app.services.encryption import EncryptionService
+        logs = db.query(FeedbackLog).filter(
+            FeedbackLog.user_id == user_id,
+            FeedbackLog.rating == "disliked"
+        ).order_by(FeedbackLog.created_at.desc()).limit(limit).all()
+
+        patterns = []
+        for log in logs:
+            suggestion = db.get(ReplySuggestion, log.reply_suggestion_id)
+            if suggestion:
+                patterns.append(EncryptionService.decrypt(suggestion.reply_text))
+        return patterns

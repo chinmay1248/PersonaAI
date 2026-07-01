@@ -11,6 +11,9 @@ from app.services.encryption import EncryptionService
 from app.services.mood_detector import MoodDetectorService
 from app.services.openai_client import create_chat_completion, parse_json_response
 from app.services.chat_history_service import ChatHistoryService
+from app.services.intent_detector import IntentDetectorService
+
+from app.services.feedback_processor import FeedbackProcessorService
 from app.utils.prompt_builder import build_reply_prompt
 from app.config import get_settings
 
@@ -98,6 +101,13 @@ class AIEngineService:
         # Use extended history if available, otherwise fall back to conversation_history
         history_to_use = extended_history_dump if extended_history_dump else history_dump
 
+        # Detect intent
+        detected_intent_obj = IntentDetectorService.detect(payload.incoming_messages, history_to_use)
+
+        # Load feedback patterns
+        positive_patterns = FeedbackProcessorService.get_positive_reply_patterns(db, user_id)
+        negative_patterns = FeedbackProcessorService.get_negative_reply_patterns(db, user_id)
+
         prompt = build_reply_prompt(
             incoming_messages=payload.incoming_messages,
             conversation_history=history_to_use,
@@ -109,6 +119,8 @@ class AIEngineService:
             common_emojis=common_emojis,
             chat_tone_profile=chat_tone_dict,
             global_tone_profile=tone_profile,
+            detected_intent=detected_intent_obj.label(),
+            positive_examples=positive_patterns,
         )
 
         conversation = Conversation(
@@ -130,6 +142,12 @@ class AIEngineService:
             message_text=combined_message,
             detected_mood=detected_mood,
         )
+
+        # Trigger auto-retrain every 20 messages
+        msg_count = ChatHistoryService.get_message_count(db, chat_config.id)
+        if msg_count > 0 and msg_count % 20 == 0:
+            from app.workers.training_job import retrain_chat_tone_job
+            retrain_chat_tone_job.delay(chat_config.id, user_id)
 
         reply_texts = []
         if settings.llm_enabled:
@@ -158,34 +176,46 @@ class AIEngineService:
             except Exception as e:
                 print(f"Failed to fetch replies from {settings.normalized_llm_provider}: {e}")
         
-        # Fallback if no API key or API failed
-        fallback_replies = cls._fallback_replies(
-            message=combined_message,
-            conversation_history=history_dump,
-            detected_mood=detected_mood,
-            personality_mode=chat_config.personality_mode,
-            language_mix=language_mix,
-            count=payload.count,
-        )
-
         if not reply_texts:
+            fallback_replies = cls._fallback_replies(
+                message=combined_message,
+                conversation_history=history_dump,
+                detected_mood=detected_mood,
+                personality_mode=chat_config.personality_mode,
+                language_mix=language_mix,
+                count=payload.count,
+            )
             reply_texts = fallback_replies
         elif len(reply_texts) < payload.count:
+            fallback_replies = cls._fallback_replies(
+                message=combined_message,
+                conversation_history=history_dump,
+                detected_mood=detected_mood,
+                personality_mode=chat_config.personality_mode,
+                language_mix=language_mix,
+                count=payload.count,
+            )
             for fallback_text in fallback_replies:
                 if fallback_text not in reply_texts:
                     reply_texts.append(fallback_text)
                 if len(reply_texts) >= payload.count:
                     break
 
-        suggestions: list[ReplySuggestion] = []
-        for index, text in enumerate(reply_texts):
-            suggestion = ReplySuggestion(
+        # Re-rank replies based on feedback patterns
+        reply_texts = cls._rerank_replies(reply_texts, positive_patterns, negative_patterns)
+
+        # Encrypt replies for storage
+        suggestions = [
+            ReplySuggestion(
                 conversation_id=conversation.id,
                 reply_text=EncryptionService.encrypt(text),
-                rank=index + 1,
+                rank=i + 1,
             )
+            for i, text in enumerate(reply_texts[:payload.count])
+        ]
+        
+        for suggestion in suggestions:
             db.add(suggestion)
-            suggestions.append(suggestion)
 
         db.commit()
         db.refresh(conversation)
@@ -193,6 +223,31 @@ class AIEngineService:
             db.refresh(suggestion)
 
         return conversation, suggestions, detected_mood
+
+    @classmethod
+    def _rerank_replies(cls, replies: list[str], positive_patterns: list[str], negative_patterns: list[str]) -> list[str]:
+        if not positive_patterns and not negative_patterns:
+            return replies
+
+        def score_reply(reply: str) -> float:
+            score = 0.0
+            reply_lower = reply.lower()
+            
+            for pattern in positive_patterns:
+                words = [w for w in pattern.lower().split() if len(w) > 3]
+                for w in words:
+                    if w in reply_lower:
+                        score += 1.0
+                        
+            for pattern in negative_patterns:
+                words = [w for w in pattern.lower().split() if len(w) > 3]
+                for w in words:
+                    if w in reply_lower:
+                        score -= 1.0
+                        
+            return score
+
+        return sorted(replies, key=score_reply, reverse=True)
 
     @staticmethod
     def _extract_reply_texts(raw_replies: object, count: int) -> list[str]:
