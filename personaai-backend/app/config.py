@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     llm_base_url: str | None = Field(default=None, validation_alias=AliasChoices("LLM_BASE_URL"))
     llm_chat_model: str | None = Field(default=None, validation_alias=AliasChoices("LLM_CHAT_MODEL"))
     llm_fast_model: str | None = Field(default=None, validation_alias=AliasChoices("LLM_FAST_MODEL"))
+    llm_timeout_seconds: float = Field(default=8.0, validation_alias=AliasChoices("LLM_TIMEOUT_SECONDS"))
     llm_embedding_model: str | None = Field(
         default=None,
         validation_alias=AliasChoices("LLM_EMBEDDING_MODEL"),

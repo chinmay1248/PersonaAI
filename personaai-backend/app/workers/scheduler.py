@@ -4,24 +4,37 @@ Celery Beat scheduler configuration for periodic tasks.
 Schedules:
 - run_training_job: Every 15 minutes (process untrained samples)
 - refresh_tone_profiles: Every 1 hour (refresh tone analysis)
+- cleanup_old_messages_job: Once a day (cleanup)
 """
 
 from celery.schedules import crontab
 from app.workers.celery_app import celery_app
+from app.workers.training_job import run_training_job
+from app.workers.tone_update_job import refresh_tone_profiles, cleanup_old_messages_job
 
-# Configure Celery Beat schedule
-celery_app.conf.beat_schedule = {
-    "train-every-15-min": {
-        "task": "app.workers.training_job.run_training_job",
-        "schedule": 60.0 * 15,  # Every 15 minutes
-        "options": {"queue": "default"},
-    },
-    "refresh-tone-profiles-hourly": {
-        "task": "app.workers.tone_update_job.refresh_tone_profiles",
-        "schedule": 60.0 * 60,  # Every 1 hour
-        "options": {"queue": "default"},
-    },
-}
+
+@celery_app.on_after_configure.connect
+def setup_periodic_tasks(sender, **kwargs) -> None:
+    # Run the incremental training job every 15 minutes
+    sender.add_periodic_task(
+        crontab(minute="*/15"),
+        run_training_job.s(),
+        name="incremental-training-every-15m",
+    )
+
+    # Run the full tone refresh job once a day at 2:00 AM
+    sender.add_periodic_task(
+        crontab(hour=2, minute=0),
+        refresh_tone_profiles.s(),
+        name="daily-tone-refresh",
+    )
+
+    # Run message cleanup once a day at 3:00 AM
+    sender.add_periodic_task(
+        crontab(hour=3, minute=0),
+        cleanup_old_messages_job.s(),
+        name="daily-message-cleanup",
+    )
 
 # Configure Celery app settings for production
 celery_app.conf.update(

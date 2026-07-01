@@ -17,7 +17,11 @@ def create_client() -> OpenAI:
     if settings.normalized_llm_provider in {"openai", "gemini"} and not settings.llm_api_key:
         raise ValueError("LLM API key is missing")
 
-    client_kwargs: dict[str, Any] = {"api_key": settings.llm_api_key or "ollama"}
+    client_kwargs: dict[str, Any] = {
+        "api_key": settings.llm_api_key or "ollama",
+        "timeout": settings.llm_timeout_seconds,
+        "max_retries": 0,
+    }
     if settings.resolved_llm_base_url:
         client_kwargs["base_url"] = settings.resolved_llm_base_url
     return OpenAI(**client_kwargs)

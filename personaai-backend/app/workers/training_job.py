@@ -46,3 +46,19 @@ def run_training_job() -> str:
         return f"Training job failed: {exc}"
     finally:
         db.close()
+
+@celery_app.task
+def retrain_chat_tone_job(chat_config_id: str, user_id: str) -> str:
+    """Retrain a specific chat's tone profile asynchronously."""
+    from app.database import SessionLocal
+    from app.services.chat_tone_learner import ChatToneLearnerService
+
+    db = SessionLocal()
+    try:
+        ChatToneLearnerService.learn_chat_specific_tone(db, chat_config_id, user_id)
+        return f"Successfully retrained chat {chat_config_id}"
+    except Exception as exc:
+        db.rollback()
+        return f"Failed to retrain chat {chat_config_id}: {exc}"
+    finally:
+        db.close()

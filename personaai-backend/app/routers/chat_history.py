@@ -205,3 +205,15 @@ def export_chat_history(
 
     export_data = ChatHistoryService.export_chat_history(db, chat_config_id, include_encrypted)
     return export_data
+
+
+@router.post("/cleanup")
+def cleanup_old_messages(
+    days: int = Query(90, ge=1),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Endpoint to clean up old messages."""
+    from app.services.archive_service import ArchiveService
+    deleted_count = ArchiveService.delete_old_messages(db, days)
+    return {"status": "success", "deleted_count": deleted_count}
