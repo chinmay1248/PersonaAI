@@ -184,13 +184,13 @@ GET /v1/chats/{chat_id}/history?limit=50&offset=0
 ✅ **Transparency**: Users can export and inspect their chat history + learned profiles
 ✅ **Foundation**: Ready for Phase 2 (intent detection, memory, feedback learning)
 
-## What's NOT in Phase 1 (Future Work)
+## Phase 2 & 3 Completed Features
 
-- ❌ `ConversationThread` table (grouping messages by topic) - Phase 2
-- ❌ Intent detection (detecting what person is trying to do) - Phase 2
-- ❌ Feedback integration (learning from which reply user actually sends) - Phase 3
-- ❌ Message archival/cleanup (keeping only 90 days) - Phase 2
-- ❌ Advanced retrieval (similarity matching, semantic search) - Phase 2
+- ✅ **ConversationThread table**: Groups messages by topic automatically using time heuristics (added in `conversation_thread.py`).
+- ✅ **Intent detection**: Detects what the person is trying to do and adjusts replies (`intent_detector.py`).
+- ✅ **Feedback integration**: Learns from which reply the user actually sends to re-rank future suggestions (`feedback_processor.py`).
+- ✅ **Message archival/cleanup**: API endpoint to keep only 90 days of history (`archive_service.py`).
+- ✅ **Advanced retrieval**: Groundwork for semantic search using `nomic-embed-text` (`retrieval_service.py`).
 
 ## Testing the Implementation
 
@@ -270,16 +270,14 @@ CREATE TABLE chat_tone_profiles (
 );
 ```
 
-## Next Steps (Phase 2)
+## Next Steps (Future Enhancements)
 
-1. **Implement ConversationThread** - Group messages by topic/intent
-2. **Add Intent Detection** - What is the other person trying to do?
-3. **Build Retrieval System** - Find similar past conversations
-4. **Implement Ranking** - Score generated replies based on context
-5. **Add Feedback Learning** - Track which replies user actually sends
+1. **Deploy Vector DB** - Migrate from in-memory semantic search to pgvector or sqlite-vss.
+2. **Advanced Intent Models** - Upgrade from heuristic intent detection to LLM-based intent.
+3. **Automate Celery Jobs** - Move cleanup jobs to scheduled background tasks.
 
 ---
 
-**Status**: ✅ Phase 1 Complete - Per-chat storage and tone learning fully operational
-**Total Tests**: 34 comprehensive tests covering all functionality
+**Status**: ✅ Phase 1, 2 & 3 Complete - Per-chat storage, tone learning, intent detection, and retrieval operational.
+**Total Tests**: 34 comprehensive tests covering core functionality
 **Code Coverage**: Services, models, routers, and integration tests all included
