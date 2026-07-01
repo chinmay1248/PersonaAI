@@ -2,6 +2,7 @@ from app.models.chat_config import ChatConfig
 from app.models.chat_message_log import ChatMessageLog
 from app.models.chat_tone_profile import ChatToneProfile
 from app.models.conversation import Conversation
+from app.models.conversation_thread import ConversationThread
 from app.models.feedback_log import FeedbackLog
 from app.models.reply_suggestion import ReplySuggestion
 from app.models.tone_profile import ToneProfile
@@ -15,6 +16,7 @@ __all__ = [
     "ChatMessageLog",
     "ChatToneProfile",
     "Conversation",
+    "ConversationThread",
     "ReplySuggestion",
     "TrainingSample",
     "FeedbackLog",

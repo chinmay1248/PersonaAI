@@ -32,6 +32,44 @@ class ChatHistoryService:
         Returns:
             Created ChatMessageLog record
         """
+        from app.models.conversation_thread import ConversationThread
+
+        active_thread = db.query(ConversationThread).filter(
+            ConversationThread.chat_config_id == chat_config_id,
+            ConversationThread.is_active == True
+        ).order_by(ConversationThread.created_at.desc()).first()
+
+        if not active_thread:
+            active_thread = ConversationThread(
+                chat_config_id=chat_config_id,
+                topic_name=None,
+            )
+            db.add(active_thread)
+            db.commit()
+            db.refresh(active_thread)
+        else:
+            last_msg = db.query(ChatMessageLog).filter(
+                ChatMessageLog.thread_id == active_thread.id
+            ).order_by(ChatMessageLog.created_at.desc()).first()
+            
+            # Simple heuristic: if more than 4 hours since last message, start a new thread
+            if last_msg and last_msg.created_at.tzinfo is None:
+                last_msg_time = last_msg.created_at.replace(tzinfo=timezone.utc)
+            elif last_msg:
+                last_msg_time = last_msg.created_at
+            else:
+                last_msg_time = datetime.now(timezone.utc)
+
+            if last_msg and (datetime.now(timezone.utc) - last_msg_time) > timedelta(hours=4):
+                active_thread.is_active = False
+                active_thread = ConversationThread(
+                    chat_config_id=chat_config_id,
+                    topic_name=None,
+                )
+                db.add(active_thread)
+                db.commit()
+                db.refresh(active_thread)
+
         message_log = ChatMessageLog(
             chat_config_id=chat_config_id,
             user_id=user_id,
@@ -39,6 +77,7 @@ class ChatHistoryService:
             message_text=message_text,
             detected_mood=detected_mood,
             language_detected=language_detected,
+            thread_id=active_thread.id,
         )
         db.add(message_log)
         db.commit()
