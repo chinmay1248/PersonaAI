@@ -1,4 +1,4 @@
-from app.utils.prompt_builder import build_reply_prompt, infer_sender_intent
+from app.utils.prompt_builder import build_reply_prompt
 
 
 def test_build_reply_prompt_includes_style_examples_and_specificity_rules() -> None:
@@ -16,17 +16,9 @@ def test_build_reply_prompt_includes_style_examples_and_specificity_rules() -> N
         language_mix=["English", "Hindi"],
         avg_message_length=4.5,
         common_emojis=[],
+        detected_intent="showing or discussing an item, look, or appearance",
     )
 
     assert "Avoid generic filler" in prompt["system"]
     assert "Recent examples of how the user usually texts" in prompt["user"]
     assert "- show me properly" in prompt["user"]
-
-
-def test_infer_sender_intent_detects_item_discussion() -> None:
-    intent = infer_sender_intent(
-        ["The black pyjamas I got"],
-        [{"role": "contact", "text": "which one should I wear?"}],
-    )
-
-    assert "item" in intent or "appearance" in intent

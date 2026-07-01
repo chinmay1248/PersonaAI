@@ -19,6 +19,8 @@ def build_reply_prompt(
     common_emojis: list[str] | None = None,
     chat_tone_profile: dict | None = None,
     global_tone_profile: dict | None = None,
+    detected_intent: str | None = None,
+    positive_examples: list[str] | None = None,
 ) -> dict[str, str]:
     personality = personality_mode or "balanced"
     recent_history = conversation_history[-50:]
@@ -28,13 +30,19 @@ def build_reply_prompt(
     length_hint = describe_reply_length(avg_message_length)
     transcript = format_conversation_history(recent_history)
     style_examples = format_style_examples(recent_history)
-    latest_sender_intent = infer_sender_intent(incoming_messages, recent_history)
+    latest_sender_intent = detected_intent or "sharing an update and expecting a natural reaction"
     latest_message = "\n".join(incoming_messages)
 
     # Build chat-specific tone context
     chat_tone_hint = ""
     if chat_tone_profile:
         chat_tone_hint = build_chat_tone_hint(chat_tone_profile, global_tone_profile)
+
+    # Build positive feedback examples
+    feedback_examples = ""
+    if positive_examples:
+        feedback_examples = "\nExamples of replies the user liked in the past (try to match this style):\n"
+        feedback_examples += "\n".join(f"- {ex}" for ex in positive_examples) + "\n"
 
     return {
         "system": (
@@ -70,6 +78,7 @@ def build_reply_prompt(
             f"{transcript}\n\n"
             "Recent examples of how the user usually texts:\n"
             f"{style_examples}\n\n"
+            f"{feedback_examples}"
             "Latest incoming message(s) to respond to:\n"
             f"{latest_message}"
         ),
@@ -136,24 +145,7 @@ def describe_reply_length(avg_message_length: float | None) -> str:
     return "slightly fuller but still chat-like"
 
 
-def infer_sender_intent(incoming_messages: list[str], conversation_history: list[dict[str, str]]) -> str:
-    latest_text = " ".join(incoming_messages).lower()
-    recent_context = " ".join(message.get("text", "") for message in conversation_history[-8:]).lower()
-    combined = f"{recent_context} {latest_text}"
 
-    if "?" in latest_text:
-        return "asking a question or seeking confirmation"
-    if any(token in combined for token in {"come", "meet", "tomorrow", "today", "time", "when", "where", "scene", "plan"}):
-        return "making or discussing a plan"
-    if any(token in combined for token in {"look", "wear", "photo", "pic", "pyjamas", "dress", "shoe", "shirt", "outfit"}):
-        return "showing or discussing an item, look, or appearance"
-    if any(token in combined for token in {"miss you", "love you", "cute", "sweet", "baby"}):
-        return "showing affection or flirting"
-    if any(token in combined for token in {"bro", "lol", "lmao", "haha", "wild", "scene"}):
-        return "casual banter or teasing"
-    if any(token in combined for token in {"sorry", "late", "stuck", "problem", "issue", "tension"}):
-        return "sharing a problem or mild stress"
-    return "sharing an update and expecting a natural reaction"
 
 
 def build_chat_tone_hint(chat_tone_profile: dict, global_tone_profile: dict | None = None) -> str:
