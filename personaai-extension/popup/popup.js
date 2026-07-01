@@ -195,11 +195,28 @@ function setBusy(busy) {
 }
 
 async function sendMessage(message) {
-  const response = await chrome.runtime.sendMessage(message);
+  let response;
+  try {
+    response = await chrome.runtime.sendMessage(message);
+  } catch (error) {
+    throw new Error(normalizeRuntimeError(error));
+  }
   if (!response?.ok) {
-    throw new Error(response?.error || "PersonaAI could not complete that action.");
+    throw new Error(normalizeRuntimeError(response?.error || "PersonaAI could not complete that action."));
   }
   return response;
+}
+
+function normalizeRuntimeError(error) {
+  const message = String(error?.message || error || "");
+  const lowered = message.toLowerCase();
+  if (lowered.includes("extension context invalidated")) {
+    return "Extension was reloaded. Close this popup, refresh WhatsApp Web or Telegram Web, then reopen PersonaAI.";
+  }
+  if (lowered.includes("receiving end does not exist") || lowered.includes("could not establish connection")) {
+    return "Chat page is not connected yet. Refresh WhatsApp Web or Telegram Web, then try again.";
+  }
+  return message || "PersonaAI could not complete that action.";
 }
 
 async function requestBackendPermission(url) {

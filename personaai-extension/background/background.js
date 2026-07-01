@@ -198,10 +198,28 @@ async function trainFromContext(context) {
     throw new Error("No outgoing messages found to train from.");
   }
 
-  return apiFetch("/tone/train-from-messages", {
+  // 1. Train global tone
+  const globalTrainPromise = apiFetch("/tone/train-from-messages", {
     method: "POST",
     body: { source, messages: ownMessages }
   });
+
+  // 2. Train chat-specific tone
+  let chatTrainPromise = Promise.resolve();
+  try {
+    const settings = await getSettings();
+    const chatConfig = await ensureChatConfig(context, settings);
+    if (chatConfig && chatConfig.id) {
+      chatTrainPromise = apiFetch(`/chats/${chatConfig.id}/retrain-tone`, {
+        method: "POST"
+      });
+    }
+  } catch (err) {
+    console.warn("Could not trigger chat-specific tone retraining:", err);
+  }
+
+  const [globalResult] = await Promise.all([globalTrainPromise, chatTrainPromise]);
+  return globalResult;
 }
 
 async function ensureChatConfig(context, settings) {
@@ -236,7 +254,7 @@ async function getActiveContext() {
     throw new Error("Open WhatsApp Web or Telegram Web, then try again.");
   }
 
-  const response = await chrome.tabs.sendMessage(tab.id, { type: "EXTRACT_CONTEXT" });
+  const response = await sendTabMessage(tab.id, { type: "EXTRACT_CONTEXT" }, { ensureInjected: true });
   if (!response?.ok) {
     throw new Error(response?.error || "Could not read the active chat.");
   }
@@ -254,12 +272,44 @@ async function insertInActiveTab(text) {
     throw new Error("Open WhatsApp Web or Telegram Web, then try again.");
   }
 
-  const response = await chrome.tabs.sendMessage(tab.id, { type: "INSERT_TEXT", text });
+  const response = await sendTabMessage(tab.id, { type: "INSERT_TEXT", text }, { ensureInjected: true });
   if (!response?.ok) {
     throw new Error(response?.error || "Could not insert the reply.");
   }
 
   return { inserted: true };
+}
+
+async function sendTabMessage(tabId, message, options = {}) {
+  try {
+    return await chrome.tabs.sendMessage(tabId, message);
+  } catch (error) {
+    if (!options.ensureInjected || !shouldRetryAfterInjection(error)) {
+      throw error;
+    }
+
+    await ensureContentScriptInjected(tabId);
+    return chrome.tabs.sendMessage(tabId, message);
+  }
+}
+
+function shouldRetryAfterInjection(error) {
+  const message = String(error?.message || "").toLowerCase();
+  return message.includes("receiving end does not exist")
+    || message.includes("could not establish connection")
+    || message.includes("message port closed");
+}
+
+async function ensureContentScriptInjected(tabId) {
+  await chrome.scripting.insertCSS({
+    target: { tabId },
+    files: ["content/content.css"]
+  }).catch(() => {});
+
+  await chrome.scripting.executeScript({
+    target: { tabId },
+    files: ["content/content.js"]
+  });
 }
 
 async function healthCheck() {

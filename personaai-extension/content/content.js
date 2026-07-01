@@ -176,6 +176,12 @@
       return;
     }
 
+    if (action === "copy") {
+      navigator.clipboard.writeText(target.dataset.text || "");
+      setStatus("✓ Copied to clipboard.");
+      return;
+    }
+
     if (action === "generate") {
       await runAction("CONTENT_GENERATE_REPLY", renderReplies, "Generating replies...");
       return;
@@ -253,10 +259,16 @@
       return;
     }
 
+    const moodBadge = result?.detected_mood ? `<span class="personaai-mood-badge">${escapeHtml(result.detected_mood)}</span>` : "";
+
     state.resultNode.innerHTML = suggestions.map((suggestion, i) => `
       <article class="personaai-result" style="animation-delay: ${i * 0.08}s">
+        ${moodBadge}
         <p>${escapeHtml(suggestion.text)}</p>
-        <button class="personaai-button small" type="button" data-action="insert" data-text="${escapeAttr(suggestion.text)}">↗ Use</button>
+        <div class="personaai-result-actions">
+          <button class="personaai-button small" type="button" data-action="insert" data-text="${escapeAttr(suggestion.text)}">↗ Use</button>
+          <button class="personaai-button ghost small" type="button" data-action="copy" data-text="${escapeAttr(suggestion.text)}">📋 Copy</button>
+        </div>
       </article>
     `).join("");
   }
@@ -312,6 +324,9 @@
 
   // ── WhatsApp Extraction (FIXED: robust selectors) ──────────
   function extractWhatsApp() {
+    const panel = document.querySelector(
+      "#main [data-testid='conversation-panel-messages'], #main [role='application'], #main"
+    );
     const title = textFromFirst([
       "#main header span[title]",
       "header span[title]",
@@ -320,34 +335,71 @@
       "header [role='button'] span"
     ]);
 
-    // Use multiple selector strategies — WhatsApp changes DOM frequently
-    const containerSelectors = [
-      "[data-testid='msg-container']",
-      "div.message-in, div.message-out",
-      "#main [role='row'] div[class*='message']"
-    ];
-
-    let nodes = [];
-    for (const selector of containerSelectors) {
-      const found = document.querySelectorAll(selector);
-      if (found.length > 0) {
-        nodes = [...found];
-        break;
-      }
-    }
-
-    // Fallback: try the broader combined approach
-    if (nodes.length === 0) {
-      nodes = getUniqueMessageNodes([
-        ...document.querySelectorAll("[data-testid='msg-container']"),
-        ...document.querySelectorAll(".message-in, .message-out")
-      ]);
-    }
+    let nodes = getWhatsAppMessageNodes(panel);
 
     return {
       chatTitle: title || "WhatsApp chat",
       messages: normalizeExtractedMessages(nodes.map((node, index) => extractWhatsAppMessage(node, title, index)))
     };
+  }
+
+  function getWhatsAppMessageNodes(panel) {
+    const root = panel || document;
+    const selectorGroups = [
+      "[data-testid='msg-container']",
+      ".message-in, .message-out",
+      "[data-id]",
+      "[data-testid*='msg-']",
+      "[role='row']"
+    ];
+
+    for (const selector of selectorGroups) {
+      const found = [...root.querySelectorAll(selector)].filter((node) => isLikelyWhatsAppMessageNode(node, panel));
+      if (found.length > 0) {
+        return getUniqueMessageNodes(found);
+      }
+    }
+
+    const fallbackNodes = [
+      ...root.querySelectorAll("span.selectable-text, span.copyable-text, span[dir='auto'], span[dir='ltr']")
+    ]
+      .map((node) => node.closest(
+        "[data-testid='msg-container'], .message-in, .message-out, [data-id], [data-testid*='msg-'], [role='row']"
+      ))
+      .filter((node) => isLikelyWhatsAppMessageNode(node, panel));
+
+    return getUniqueMessageNodes(fallbackNodes);
+  }
+
+  function isLikelyWhatsAppMessageNode(node, panel) {
+    if (!(node instanceof Element)) {
+      return false;
+    }
+    if (panel && !panel.contains(node)) {
+      return false;
+    }
+    if (!isVisible(node)) {
+      return false;
+    }
+
+    const text = cleanText(readMessageText(node, [
+      "span.selectable-text.copyable-text",
+      "span.selectable-text",
+      "span.copyable-text",
+      "span[dir='ltr']",
+      "span[dir='auto']"
+    ]));
+
+    if (!text) {
+      return false;
+    }
+
+    const ariaLabel = String(node.getAttribute("aria-label") || "").toLowerCase();
+    if (ariaLabel.includes("unread") || ariaLabel.includes("typing")) {
+      return false;
+    }
+
+    return true;
   }
 
   // ── Telegram Extraction ────────────────────────────────────
@@ -476,7 +528,7 @@
     }
 
     return element.closest(
-      "[data-testid='msg-container'], .message-in, .message-out, .Message, .message, .bubble, [class*='message-list'] [class*='message']"
+      "[data-testid='msg-container'], .message-in, .message-out, [data-id], [data-testid*='msg-'], [role='row'], .Message, .message, .bubble, [class*='message-list'] [class*='message']"
     );
   }
 
@@ -546,6 +598,25 @@
     if (testId.includes("msg-self") || testId.includes("out")) {
       return true;
     }
+
+    // Some WhatsApp builds keep direction markers on descendants/ancestors
+    const outgoingMarker = node.querySelector("[data-testid*='out'], [aria-label*='You:'], [data-icon='msg-dblcheck'], [data-icon='msg-check']");
+    if (outgoingMarker) {
+      return true;
+    }
+
+    // Fallback heuristic: sent messages usually render on the right side
+    const bubble = node.querySelector("[data-testid='msg-container'], .copyable-area, [data-id], span.selectable-text, span.copyable-text") || node;
+    const bubbleRect = bubble.getBoundingClientRect();
+    const parentRect = (node.parentElement || node).getBoundingClientRect();
+    if (bubbleRect.width > 0 && parentRect.width > 0) {
+      const bubbleMidpoint = bubbleRect.left + (bubbleRect.width / 2);
+      const parentMidpoint = parentRect.left + (parentRect.width / 2);
+      if (bubbleMidpoint > parentMidpoint) {
+        return true;
+      }
+    }
+
     return false;
   }
 
@@ -591,7 +662,7 @@
 
   function updateSelectedMessageHighlight() {
     const nodes = document.querySelectorAll(
-      "[data-testid='msg-container'], .message-in, .message-out, .Message, .message, .bubble, [class*='message-list'] [class*='message']"
+      "[data-testid='msg-container'], .message-in, .message-out, [data-id], [data-testid*='msg-'], [role='row'], .Message, .message, .bubble, [class*='message-list'] [class*='message']"
     );
 
     nodes.forEach((node) => {

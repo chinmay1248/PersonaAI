@@ -348,6 +348,26 @@
   margin-top: 4px;
 }
 
+.personaai-result-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.personaai-mood-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  background: rgba(139, 92, 246, 0.15);
+  color: #c4b5fd;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
 .personaai-empty {
   margin: 0;
   color: #64748b;
