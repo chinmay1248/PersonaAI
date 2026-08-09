@@ -79,7 +79,7 @@ def _run_migrations() -> None:
     """Apply Alembic migrations using the configured database URL."""
     project_root = Path(__file__).resolve().parents[1]
     alembic_config = Config(str(project_root / "alembic.ini"))
-    alembic_config.set_main_option("sqlalchemy.url", settings.database_url)
+    alembic_config.set_main_option("sqlalchemy.url", settings.resolved_database_url)
     command.upgrade(alembic_config, "head")
 
 
@@ -87,7 +87,7 @@ def _stamp_head() -> None:
     """Mark a legacy schema as being at the latest Alembic revision."""
     project_root = Path(__file__).resolve().parents[1]
     alembic_config = Config(str(project_root / "alembic.ini"))
-    alembic_config.set_main_option("sqlalchemy.url", settings.database_url)
+    alembic_config.set_main_option("sqlalchemy.url", settings.resolved_database_url)
     command.stamp(alembic_config, "head")
 
 
@@ -136,6 +136,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+from fastapi.responses import RedirectResponse
+
+@app.get("/", include_in_schema=False)
+def read_root():
+    return RedirectResponse(url="/docs")
 
 
 @app.get(f"{settings.api_prefix}/health")

@@ -106,6 +106,16 @@ class Settings(BaseSettings):
         return self.llm_enabled
 
     @property
+    def resolved_database_url(self) -> str:
+        """Upgrade legacy 'postgres://' URLs (Heroku/Render style) to the
+        'postgresql://' scheme SQLAlchemy 1.4+ requires. Some hosts still
+        hand out the old scheme, which otherwise fails at startup with
+        NoSuchModuleError instead of connecting."""
+        if self.database_url.startswith("postgres://"):
+            return "postgresql://" + self.database_url[len("postgres://") :]
+        return self.database_url
+
+    @property
     def resolved_cors_allowed_origins(self) -> list[str]:
         raw_origins = (self.cors_allowed_origins or "*").strip()
         if raw_origins == "*":
