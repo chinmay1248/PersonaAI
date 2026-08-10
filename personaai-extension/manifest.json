@@ -52,7 +52,7 @@
     "https://web.telegram.org/*",
     "https://k.telegram.org/*",
     "https://a.telegram.org/*",
-    "https://personaai-backend-production-4490.up.railway.app/*",
+    "https://personaai-backend-l60s.onrender.com/*",
     "http://localhost:8000/*",
     "http://127.0.0.1:8000/*"
   ],

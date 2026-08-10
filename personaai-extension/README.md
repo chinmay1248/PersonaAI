@@ -41,7 +41,7 @@ Password: StrongPass123
 The default backend URL is:
 
 ```text
-https://personaai-backend-production-4490.up.railway.app/v1
+https://personaai-backend-l60s.onrender.com/v1
 ```
 
 Change it in the popup settings when testing a local or staging backend.

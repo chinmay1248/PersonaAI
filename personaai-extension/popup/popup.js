@@ -101,6 +101,15 @@ function bindEvents() {
 
 async function submitAuth(type) {
   await withBusy(async () => {
+    await requestBackendPermission(elements.apiBaseUrlInput.value);
+    await sendMessage({
+      type: "SAVE_SETTINGS",
+      settings: {
+        apiBaseUrl: elements.apiBaseUrlInput.value,
+        suggestionCount: Number(elements.suggestionCountInput.value),
+        personalityMode: elements.personalityInput.value
+      }
+    });
     const response = await sendMessage({
       type,
       credentials: {
