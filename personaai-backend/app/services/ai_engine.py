@@ -98,8 +98,10 @@ class AIEngineService:
                 for log in reversed(chat_message_logs)
             ]
 
-        # Use extended history if available, otherwise fall back to conversation_history
-        history_to_use = extended_history_dump if extended_history_dump else history_dump
+        # The client sends the live, two-sided transcript; the stored log only fills in
+        # older turns. Replacing one with the other used to hand the model a one-sided
+        # conversation with none of the user's own messages in it.
+        history_to_use = cls._merge_history(extended_history_dump, history_dump)
 
         # Detect intent
         detected_intent_obj = IntentDetectorService.detect(payload.incoming_messages, history_to_use)
@@ -121,6 +123,8 @@ class AIEngineService:
             global_tone_profile=tone_profile,
             detected_intent=detected_intent_obj.label(),
             positive_examples=positive_patterns,
+            negative_examples=negative_patterns,
+            count=payload.count,
         )
 
         conversation = Conversation(
@@ -132,6 +136,11 @@ class AIEngineService:
         )
         db.add(conversation)
         db.flush()
+
+        # Log the user's own latest turn before the incoming one, so the stored history
+        # keeps both sides. Without it the chat tone learner never sees a single user
+        # message and the transcript we prompt with reads like a monologue.
+        cls._log_latest_user_turn(db, chat_config.id, user_id, history_dump, extended_history_dump)
 
         # Log the incoming message to chat history
         ChatHistoryService.log_message(
@@ -157,27 +166,23 @@ class AIEngineService:
         reply_texts = []
         if settings.llm_enabled:
             try:
-                reply_length_rule = (
-                    "Each reply must be short and natural, ideally 4 to 16 words, and sound like a real text message."
-                )
-                system_prompt = (
-                    f"{prompt['system']} Provide exactly {payload.count} varied reply options. "
-                    f"{reply_length_rule} "
-                    "Return only the replies, one per line, with no intro and no explanation."
-                )
                 response = create_chat_completion(
                     model=settings.resolved_chat_model,
                     messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": prompt['user']},
+                        {"role": "system", "content": prompt["system"]},
+                        {"role": "user", "content": prompt["user"]},
                     ],
-                    max_tokens=400,
-                    temperature=0.8,
+                    max_tokens=300,
+                    # Small chat models drift off the instructions above ~0.8; this keeps
+                    # the replies varied without letting them wander off context.
+                    temperature=0.7,
+                    top_p=0.9,
                 )
 
                 if response and response.choices:
                     response_text = response.choices[0].message.content
                     reply_texts = cls._extract_reply_texts(response_text, payload.count)
+                    reply_texts = cls._drop_echoed_replies(reply_texts, combined_message)
             except Exception as e:
                 print(f"Failed to fetch replies from {settings.normalized_llm_provider}: {e}")
         
@@ -229,6 +234,80 @@ class AIEngineService:
 
         return conversation, suggestions, detected_mood
 
+    @staticmethod
+    def _normalize_message_text(text: object) -> str:
+        return " ".join(str(text or "").split()).lower()
+
+    @classmethod
+    def _merge_history(
+        cls,
+        stored_history: list[dict[str, str]],
+        client_history: list[dict[str, str]],
+        limit: int = 40,
+    ) -> list[dict[str, str]]:
+        """Combine the stored log with the transcript the client just sent.
+
+        The client window is the live tail of the chat and is the only source that
+        carries the user's own messages, so it always wins; stored messages only add
+        older turns the client did not include.
+        """
+        if not client_history:
+            return stored_history[-limit:]
+        if not stored_history:
+            return client_history[-limit:]
+
+        client_keys = {
+            (message.get("role"), cls._normalize_message_text(message.get("text")))
+            for message in client_history
+        }
+        older = [
+            message
+            for message in stored_history
+            if (message.get("role"), cls._normalize_message_text(message.get("text"))) not in client_keys
+        ]
+        return (older + client_history)[-limit:]
+
+    @classmethod
+    def _log_latest_user_turn(
+        cls,
+        db: Session,
+        chat_config_id: str,
+        user_id: str,
+        client_history: list[dict[str, str]],
+        stored_history: list[dict[str, str]],
+    ) -> None:
+        latest_user_text = next(
+            (
+                message.get("text")
+                for message in reversed(client_history)
+                if message.get("role") == "user" and str(message.get("text", "")).strip()
+            ),
+            None,
+        )
+        if not latest_user_text:
+            return
+
+        already_stored = {
+            cls._normalize_message_text(message.get("text"))
+            for message in stored_history
+            if message.get("role") == "user"
+        }
+        if cls._normalize_message_text(latest_user_text) in already_stored:
+            return
+
+        try:
+            ChatHistoryService.log_message(
+                db=db,
+                chat_config_id=chat_config_id,
+                user_id=user_id,
+                message_role="user",
+                message_text=" ".join(str(latest_user_text).split()),
+            )
+        except Exception as exc:
+            # History logging is best-effort context enrichment, never a reason to
+            # fail the reply the caller is waiting on.
+            print(f"Could not log user message to chat history: {exc}")
+
     @classmethod
     def _rerank_replies(cls, replies: list[str], positive_patterns: list[str], negative_patterns: list[str]) -> list[str]:
         if not positive_patterns and not negative_patterns:
@@ -254,9 +333,24 @@ class AIEngineService:
 
         return sorted(replies, key=score_reply, reverse=True)
 
+    # Preambles a small chat model adds around the replies. Left in place they get
+    # served to the user as if they were reply options.
+    META_LINE_PATTERN = re.compile(
+        r"^(here (are|is)|here's|below (are|is)|these are|sure[,!]? here|okay[,!]? here|"
+        r"as requested|based on|i hope this|hope this helps|let me know if|note that|note:|"
+        r"reply options|options:|replies:)",
+        re.IGNORECASE,
+    )
+
     @staticmethod
     def _extract_reply_texts(raw_replies: object, count: int) -> list[str]:
-        parsed_replies = parse_json_response(raw_replies)
+        # The prompt asks for one reply per line, so only pay for a JSON parse (and its
+        # failure warning) when the model actually answered with JSON.
+        parsed_replies = (
+            parse_json_response(raw_replies)
+            if AIEngineService._looks_like_json(raw_replies)
+            else None
+        )
         if isinstance(parsed_replies, dict):
             reply_list = parsed_replies.get("replies", [])
         elif isinstance(parsed_replies, list):
@@ -266,8 +360,10 @@ class AIEngineService:
 
         clean_replies = []
         for reply in reply_list:
-            text = " ".join(str(reply).split())
-            if text and text not in clean_replies:
+            text = AIEngineService._clean_reply_text(str(reply))
+            if not text or AIEngineService._is_meta_text(text):
+                continue
+            if text not in clean_replies:
                 clean_replies.append(text)
             if len(clean_replies) >= count:
                 break
@@ -275,14 +371,45 @@ class AIEngineService:
             return clean_replies
 
         return AIEngineService._extract_reply_strings_from_broken_json(str(raw_replies or ""), count)
-    
+
+    @staticmethod
+    def _looks_like_json(raw_replies: object) -> bool:
+        if isinstance(raw_replies, dict | list):
+            return True
+        candidate = str(raw_replies or "").strip().strip("`").strip()
+        return candidate.removeprefix("json").strip().startswith(("{", "["))
+
+    @staticmethod
+    def _clean_reply_text(text: str) -> str:
+        """Strip the list markers, speaker labels and quotes models wrap replies in."""
+        cleaned = " ".join(str(text or "").split())
+        cleaned = re.sub(r"^(?:[-*•]|\d+[.)])\s*", "", cleaned)
+        cleaned = re.sub(r"^(?:reply|option|me|you)\s*\d*\s*[:\-]\s+", "", cleaned, flags=re.IGNORECASE)
+        cleaned = cleaned.strip().strip("`").strip()
+        if len(cleaned) >= 2 and cleaned[0] in "\"'“‘" and cleaned[-1] in "\"'”’":
+            cleaned = cleaned[1:-1].strip()
+        return cleaned
+
+    @staticmethod
+    def _is_meta_text(text: str) -> bool:
+        if AIEngineService.META_LINE_PATTERN.match(text):
+            return True
+        # A short line ending in a colon is a heading, not a text someone would send.
+        return text.endswith(":") and len(text.split()) <= 8
+
+    @staticmethod
+    def _drop_echoed_replies(replies: list[str], incoming_message: str) -> list[str]:
+        """Discard options that just parrot the incoming message back."""
+        incoming = " ".join(str(incoming_message or "").split()).lower().strip(" .!?")
+        if not incoming:
+            return replies
+        return [reply for reply in replies if reply.lower().strip(" .!?") != incoming]
+
     @staticmethod
     def _extract_reply_lines(content: str) -> list[str]:
         lines = []
         for line in str(content or "").splitlines():
-            cleaned = re.sub(r"^\s*(?:[-*]|\d+[.)])\s*", "", line).strip()
-            if not cleaned:
-                continue
+            cleaned = AIEngineService._clean_reply_text(line)
             if cleaned.lower().startswith("replies:"):
                 cleaned = cleaned.split(":", 1)[1].strip()
             if cleaned:
