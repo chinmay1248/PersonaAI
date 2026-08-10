@@ -58,7 +58,11 @@ def parse_json_response(content: Any) -> dict[str, Any] | list[Any] | None:
 def create_chat_completion(model: str, messages: list[dict[str, str]], **kwargs: Any):
     if not settings.llm_enabled:
         return None
-    client = create_client()
+    try:
+        client = create_client()
+    except Exception as exc:
+        logger.warning("%s client unavailable: %s", settings.normalized_llm_provider, exc)
+        return None
     request_kwargs = dict(kwargs)
     if settings.normalized_llm_provider == "ollama":
         request_kwargs.pop("response_format", None)
