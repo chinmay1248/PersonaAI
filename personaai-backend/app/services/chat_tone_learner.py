@@ -324,7 +324,13 @@ class ChatToneLearnerService:
 
     @staticmethod
     def _create_empty_profile(db: Session, chat_config_id: str) -> ChatToneProfile:
-        """Create an empty tone profile for a chat."""
+        """Return the chat's empty tone profile, creating it only when absent."""
+        existing = db.query(ChatToneProfile).filter(
+            ChatToneProfile.chat_config_id == chat_config_id
+        ).order_by(ChatToneProfile.updated_at.desc()).first()
+        if existing:
+            return existing
+
         from app.models import ChatConfig
         chat_config = db.query(ChatConfig).filter(ChatConfig.id == chat_config_id).first()
         if not chat_config:

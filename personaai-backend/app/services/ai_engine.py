@@ -75,7 +75,7 @@ class AIEngineService:
         # Load chat-specific tone profile
         chat_tone_profile = db.query(ChatToneProfile).filter(
             ChatToneProfile.chat_config_id == chat_config.id
-        ).one_or_none()
+        ).order_by(ChatToneProfile.updated_at.desc()).first()
 
         # Build chat-specific tone dict for prompt
         chat_tone_dict = None
