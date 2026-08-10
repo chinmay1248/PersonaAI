@@ -24,29 +24,56 @@ class FeedbackProcessorService:
         db.commit()
 
     @staticmethod
-    def get_positive_reply_patterns(db: Session, user_id: str, limit: int = 5) -> list[str]:
+    def get_positive_reply_patterns(
+        db: Session,
+        user_id: str,
+        limit: int = 5,
+        chat_config_id: str | None = None,
+    ) -> list[str]:
         """Fetch texts of replies recently rated as 'liked'."""
-        from app.services.encryption import EncryptionService
-        logs = db.query(FeedbackLog).filter(
-            FeedbackLog.user_id == user_id,
-            FeedbackLog.rating == "liked"
-        ).order_by(FeedbackLog.created_at.desc()).limit(limit).all()
-
-        patterns = []
-        for log in logs:
-            suggestion = db.get(ReplySuggestion, log.reply_suggestion_id)
-            if suggestion:
-                patterns.append(EncryptionService.decrypt(suggestion.reply_text))
-        return patterns
+        return FeedbackProcessorService._get_rated_reply_texts(
+            db, user_id, "liked", limit, chat_config_id
+        )
 
     @staticmethod
-    def get_negative_reply_patterns(db: Session, user_id: str, limit: int = 5) -> list[str]:
+    def get_negative_reply_patterns(
+        db: Session,
+        user_id: str,
+        limit: int = 5,
+        chat_config_id: str | None = None,
+    ) -> list[str]:
         """Fetch texts of replies recently rated as 'disliked'."""
+        return FeedbackProcessorService._get_rated_reply_texts(
+            db, user_id, "disliked", limit, chat_config_id
+        )
+
+    @staticmethod
+    def _get_rated_reply_texts(
+        db: Session,
+        user_id: str,
+        rating: str,
+        limit: int,
+        chat_config_id: str | None,
+    ) -> list[str]:
+        from app.models.conversation import Conversation
         from app.services.encryption import EncryptionService
-        logs = db.query(FeedbackLog).filter(
+
+        query = db.query(FeedbackLog).filter(
             FeedbackLog.user_id == user_id,
-            FeedbackLog.rating == "disliked"
-        ).order_by(FeedbackLog.created_at.desc()).limit(limit).all()
+            FeedbackLog.rating == rating,
+        )
+
+        # Rated replies are shown to the model as style examples, and a small model
+        # will happily lift their wording. Scoping them to the chat keeps another
+        # conversation's names and plans out of these suggestions.
+        if chat_config_id:
+            query = query.join(
+                ReplySuggestion, ReplySuggestion.id == FeedbackLog.reply_suggestion_id
+            ).join(
+                Conversation, Conversation.id == ReplySuggestion.conversation_id
+            ).filter(Conversation.chat_config_id == chat_config_id)
+
+        logs = query.order_by(FeedbackLog.created_at.desc()).limit(limit).all()
 
         patterns = []
         for log in logs:

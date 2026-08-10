@@ -74,16 +74,19 @@ def build_reply_prompt(
     system_lines += [
         "",
         "# HOW TO WRITE EACH REPLY",
-        "1. Find the specific thing in their latest message: the question, the plan, the person, "
+        "1. You are answering ONE message: the latest message shown at the end of the conversation. "
+        "Everything above it is background for understanding it, not something to reply to. Never "
+        "bring up an older topic unless the latest message brings it up itself.",
+        "2. Find the specific thing in that message: the question, the plan, the person, "
         "the item, the joke, or the feeling.",
-        "2. Respond to that exact thing. Answer the question if they asked one. React to the actual "
+        "3. Respond to that exact thing. Answer the question if they asked one. React to the actual "
         "item if they showed one. Take their side if they are venting. Play along if they are joking. "
         "Give a real answer if they are making a plan.",
-        "3. Treat everything earlier in the conversation as already known. Do not restate it, do not "
+        "4. Treat everything earlier in the conversation as already known. Do not restate it, do not "
         "summarise it, and do not repeat their words back to them.",
-        "4. Type it the way this user types: same language, same length, same lowercase or caps habit, "
+        "5. Type it the way this user types: same language, same length, same lowercase or caps habit, "
         "same punctuation, same slang.",
-        f"5. Make the {count} options genuinely different choices, not rewordings of one another - for "
+        f"6. Make the {count} options genuinely different choices, not rewordings of one another - for "
         "example one direct reply, one playful reply, and one that asks something back. All of them "
         "must still fit this exact moment in the chat.",
         "",

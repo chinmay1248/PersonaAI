@@ -98,17 +98,23 @@ class AIEngineService:
                 for log in reversed(chat_message_logs)
             ]
 
-        # The client sends the live, two-sided transcript; the stored log only fills in
-        # older turns. Replacing one with the other used to hand the model a one-sided
-        # conversation with none of the user's own messages in it.
-        history_to_use = cls._merge_history(extended_history_dump, history_dump)
+        # The client scrapes the chat that is open right now and truncates it at the
+        # message the user selected, so it is the only source guaranteed to be this
+        # chat at this moment. Backfilling older stored turns behind it let months-old
+        # topics outnumber the live window and the model answered those instead.
+        # Stored history is a fallback for callers that send no window at all.
+        history_to_use = cls._select_history(extended_history_dump, history_dump)
 
         # Detect intent
         detected_intent_obj = IntentDetectorService.detect(payload.incoming_messages, history_to_use)
 
         # Load feedback patterns
-        positive_patterns = FeedbackProcessorService.get_positive_reply_patterns(db, user_id)
-        negative_patterns = FeedbackProcessorService.get_negative_reply_patterns(db, user_id)
+        positive_patterns = FeedbackProcessorService.get_positive_reply_patterns(
+            db, user_id, chat_config_id=chat_config.id
+        )
+        negative_patterns = FeedbackProcessorService.get_negative_reply_patterns(
+            db, user_id, chat_config_id=chat_config.id
+        )
 
         prompt = build_reply_prompt(
             incoming_messages=payload.incoming_messages,
@@ -239,33 +245,23 @@ class AIEngineService:
         return " ".join(str(text or "").split()).lower()
 
     @classmethod
-    def _merge_history(
+    def _select_history(
         cls,
         stored_history: list[dict[str, str]],
         client_history: list[dict[str, str]],
         limit: int = 40,
     ) -> list[dict[str, str]]:
-        """Combine the stored log with the transcript the client just sent.
+        """Pick the transcript to prompt with.
 
-        The client window is the live tail of the chat and is the only source that
-        carries the user's own messages, so it always wins; stored messages only add
-        older turns the client did not include.
+        The window the client sent is what is actually on screen in the chat the user
+        opened, already cut off at the message they selected, so it wins outright. The
+        stored log is only used when the caller sent no window, because it is not
+        bounded in time and can reach back into conversations that have nothing to do
+        with the message being answered.
         """
-        if not client_history:
-            return stored_history[-limit:]
-        if not stored_history:
+        if client_history:
             return client_history[-limit:]
-
-        client_keys = {
-            (message.get("role"), cls._normalize_message_text(message.get("text")))
-            for message in client_history
-        }
-        older = [
-            message
-            for message in stored_history
-            if (message.get("role"), cls._normalize_message_text(message.get("text"))) not in client_keys
-        ]
-        return (older + client_history)[-limit:]
+        return stored_history[-limit:]
 
     @classmethod
     def _log_latest_user_turn(
