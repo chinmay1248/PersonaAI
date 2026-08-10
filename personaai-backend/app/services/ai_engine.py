@@ -146,8 +146,13 @@ class AIEngineService:
         # Trigger auto-retrain every 20 messages
         msg_count = ChatHistoryService.get_message_count(db, chat_config.id)
         if msg_count > 0 and msg_count % 20 == 0:
-            from app.workers.training_job import retrain_chat_tone_job
-            retrain_chat_tone_job.delay(chat_config.id, user_id)
+            try:
+                from app.workers.training_job import retrain_chat_tone_job
+                retrain_chat_tone_job.delay(chat_config.id, user_id)
+            except Exception as exc:
+                # Retraining is an optional background refinement; a missing or
+                # unreachable broker must not fail the caller's reply request.
+                print(f"Could not queue chat tone retraining: {exc}")
 
         reply_texts = []
         if settings.llm_enabled:
