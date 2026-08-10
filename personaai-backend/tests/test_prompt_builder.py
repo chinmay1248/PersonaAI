@@ -1,4 +1,8 @@
-from app.utils.prompt_builder import build_reply_prompt, describe_reply_length
+from app.utils.prompt_builder import (
+    build_reply_prompt,
+    describe_register_rule,
+    describe_reply_length,
+)
 
 
 def _prompt(**overrides):
@@ -22,28 +26,45 @@ def _prompt(**overrides):
     return build_reply_prompt(**kwargs)
 
 
-def test_prompt_includes_style_examples_and_specificity_rules() -> None:
+def test_prompt_states_the_specificity_rules() -> None:
     prompt = _prompt()
 
     assert "Never be vague when they showed, sent, or shared something specific." in prompt["system"]
-    assert "HOW THE USER TEXTS" in prompt["user"]
-    assert "- show me properly" in prompt["user"]
 
 
 def test_prompt_states_output_contract_for_the_requested_count() -> None:
     prompt = _prompt(count=4)
 
     assert "Write exactly 4 lines. One reply per line." in prompt["system"]
-    assert "Now write exactly 4 replies from Me" in prompt["user"]
+    assert "Now write exactly 4 replies to that message" in prompt["user"]
 
 
-def test_latest_message_is_not_duplicated_in_the_transcript() -> None:
+def test_no_earlier_message_reaches_the_model() -> None:
+    """Only the message being answered may appear in the prompt."""
     prompt = _prompt()
+    whole_prompt = prompt["system"] + prompt["user"]
 
-    transcript, _, latest_block = prompt["user"].partition("THEIR LATEST MESSAGE")
-    assert "Them: The black pyjamas I got" not in transcript
-    assert "The black pyjamas I got" in latest_block
-    assert "Me: show me properly" in transcript
+    assert "The black pyjamas I got" in prompt["user"]
+    for earlier in ("which one should I wear?", "show me properly"):
+        assert earlier not in whole_prompt
+
+    # And the model is told it has no history rather than left to imagine one.
+    assert "not shown anything that was said before it" in prompt["system"]
+    assert "Never refer to an earlier message" in prompt["system"]
+
+
+def test_history_still_drives_language_detection_without_being_shown() -> None:
+    hinglish = _prompt(
+        incoming_messages=["ok"],
+        conversation_history=[
+            {"role": "contact", "text": "bhai kal ka kya scene hai"},
+            {"role": "user", "text": "haan yaar dekhte hain"},
+        ],
+        language_mix=[],
+    )
+
+    assert "Hinglish" in hinglish["system"]
+    assert "scene hai" not in hinglish["system"] + hinglish["user"]
 
 
 def test_hinglish_chat_is_told_to_avoid_devanagari() -> None:
@@ -87,7 +108,26 @@ def test_disliked_replies_are_shown_as_an_anti_example() -> None:
     assert "- Sounds good, let me know!" in prompt["user"]
 
 
-def test_missing_user_examples_do_not_leave_an_empty_section() -> None:
-    prompt = _prompt(conversation_history=[{"role": "contact", "text": "yo"}])
+def test_hindi_register_comes_from_the_learned_formality_score() -> None:
+    """Without a transcript, tu/tum vs aap has to come from the tone profile."""
+    assert "never aap" in describe_register_rule("Hinglish", {"formality_score": 2.0})
+    assert "use aap" in describe_register_rule("Hinglish", {"formality_score": 4.2})
+    assert "never aap" in describe_register_rule("Hindi", None)
+    assert describe_register_rule("English", {"formality_score": 4.2}) == ""
 
-    assert "No examples of the user's own messages yet" in prompt["user"]
+
+def test_casual_hinglish_prompt_rules_out_aap() -> None:
+    prompt = _prompt(
+        incoming_messages=["kal milna hai kya"],
+        conversation_history=[{"role": "contact", "text": "bro kal ka kya scene hai"}],
+        chat_tone_profile={"formality_score": 2.0},
+    )
+
+    assert "Politeness register: informal - use tu or tum, never aap" in prompt["system"]
+
+
+def test_liked_replies_are_marked_as_style_only() -> None:
+    prompt = _prompt(positive_examples=["haan bilkul, kitne baje?"])
+
+    assert "match their feel, never their subject" in prompt["user"]
+    assert "- haan bilkul, kitne baje?" in prompt["user"]

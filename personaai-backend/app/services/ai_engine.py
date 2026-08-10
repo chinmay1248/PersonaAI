@@ -98,15 +98,16 @@ class AIEngineService:
                 for log in reversed(chat_message_logs)
             ]
 
-        # The client scrapes the chat that is open right now and truncates it at the
-        # message the user selected, so it is the only source guaranteed to be this
-        # chat at this moment. Backfilling older stored turns behind it let months-old
-        # topics outnumber the live window and the model answered those instead.
-        # Stored history is a fallback for callers that send no window at all.
-        history_to_use = cls._select_history(extended_history_dump, history_dump)
+        # Replies answer the latest message alone, so no history is shown to the model.
+        # This window is passed to the prompt builder only to tell Hindi from Hinglish,
+        # which needs more text than one short message; nothing from it is rendered
+        # into the prompt. Prefer what the client scraped from the open chat, since the
+        # stored log is bounded by nothing and reaches into unrelated conversations.
+        language_sample = cls._select_history(extended_history_dump, history_dump)
 
-        # Detect intent
-        detected_intent_obj = IntentDetectorService.detect(payload.incoming_messages, history_to_use)
+        # Intent is read from the message being answered alone. Scoring it against
+        # older turns let a previous topic decide what this message was "doing".
+        detected_intent_obj = IntentDetectorService.detect(payload.incoming_messages)
 
         # Load feedback patterns
         positive_patterns = FeedbackProcessorService.get_positive_reply_patterns(
@@ -118,7 +119,7 @@ class AIEngineService:
 
         prompt = build_reply_prompt(
             incoming_messages=payload.incoming_messages,
-            conversation_history=history_to_use,
+            conversation_history=language_sample,
             personality_mode=chat_config.personality_mode,
             detected_mood=detected_mood,
             slang_patterns=slang_patterns,
